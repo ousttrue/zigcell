@@ -29,7 +29,7 @@ pub fn main() anyerror!void {
     std.log.info("OpenGL Vendor:   {s}", .{std.mem.span(gl.getString(gl.VENDOR))});
     std.log.info("OpenGL Renderer: {s}", .{std.mem.span(gl.getString(gl.RENDERER))});
 
-    var screen = Screen.new(allocator, 20);
+    var screen = Screen.new(allocator, 30);
     defer screen.delete();
 
     // Loop until the user closes the window
