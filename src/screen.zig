@@ -8,11 +8,14 @@ const GS = @embedFile("./simple.gs");
 
 const Vec2 = std.meta.Tuple(&.{ f32, f32 });
 
-pub fn screenToDevice(m: *[16]f32, width: f32, height: f32) void {
+pub fn screenToDevice(m: *[16]f32, width: f32, height: f32, xmod: u32, ymod: u32) void {
+    const xmargin = @intToFloat(f32, xmod) / width;
+    const ymargin = @intToFloat(f32, ymod) / height;
+
     m[0] = 2.0 / width;
     m[5] = -(2.0 / height);
-    m[12] = -1;
-    m[13] = 1;
+    m[12] = -1 + xmargin;
+    m[13] = 1 - ymargin;
 }
 
 pub const Screen = struct {
@@ -70,7 +73,7 @@ pub const Screen = struct {
             0, 0, 1, 0,
             0, 0, 0, 1,
         };
-        screenToDevice(&projection, @intToFloat(f32, width), @intToFloat(f32, height));
+        screenToDevice(&projection, @intToFloat(f32, width), @intToFloat(f32, height), width % self.cell_width, height % self.cell_height);
         self.shader.setMat4("Projection", &projection);
 
         const rows = height / self.cell_height;
