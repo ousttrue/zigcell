@@ -1,5 +1,10 @@
 const std = @import("std");
-const glfw_pkg = @import("./pkgs/glfw/pkg.zig");
+const glfw = @import("./pkgs/glfw/pkg.zig");
+
+const gl_pkg = std.build.Pkg{
+    .name = "gl",
+    .path = std.build.FileSource{ .path = "pkgs/zig-opengl/exports/gl_4v6.zig" },
+};
 
 pub fn build(b: *std.build.Builder) void {
     const allocator = std.testing.allocator;
@@ -20,7 +25,8 @@ pub fn build(b: *std.build.Builder) void {
     exe.install();
 
     exe.linkLibC();
-    _ = glfw_pkg.addTo(allocator, exe, "pkgs/glfw");
+    _ = glfw.addTo(allocator, exe, "pkgs/glfw");
+    exe.addPackage(gl_pkg);
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
