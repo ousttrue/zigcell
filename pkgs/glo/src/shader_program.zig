@@ -21,12 +21,15 @@ pub fn compile(shader_type: gl.GLuint, src: []const u8) error_handling.ShaderErr
     return error_handling.ShaderError.CompileError;
 }
 
-pub fn link(vs: gl.GLuint, fs: gl.GLuint) error_handling.ShaderError!gl.GLuint {
+pub fn link(vs: gl.GLuint, fs: gl.GLuint, gs: ?gl.GLuint) error_handling.ShaderError!gl.GLuint {
     const handle = gl.createProgram();
     errdefer gl.deleteProgram(handle);
 
     gl.attachShader(handle, vs);
     gl.attachShader(handle, fs);
+    if (gs) |_gs| {
+        gl.attachShader(handle, _gs);
+    }
     gl.linkProgram(handle);
     var status: gl.GLint = undefined;
     gl.getProgramiv(handle, gl.LINK_STATUS, &status);
@@ -76,7 +79,7 @@ pub const Shader = struct {
     handle: gl.GLuint,
     location_map: std.StringHashMap(c_int),
 
-    pub fn load(allocator: std.mem.Allocator, vs_src: []const u8, fs_src: []const u8) error_handling.ShaderError!Self {
+    pub fn load(allocator: std.mem.Allocator, vs_src: []const u8, fs_src: []const u8, gs_src: ?[]const u8) error_handling.ShaderError!Self {
         var vs = compile(gl.VERTEX_SHADER, vs_src) catch {
             @panic(error_handling.getErrorMessage());
         };
@@ -87,13 +90,28 @@ pub const Shader = struct {
         };
         defer gl.deleteShader(fs);
 
-        const handle = link(vs, fs) catch {
-            @panic(error_handling.getErrorMessage());
-        };
-        return Shader{
-            .handle = handle,
-            .location_map = std.StringHashMap(c_int).init(allocator),
-        };
+        if (gs_src) |_gs| {
+            var gs = compile(gl.GEOMETRY_SHADER, _gs) catch {
+                @panic(error_handling.getErrorMessage());
+            };
+            defer gl.deleteShader(gs);
+
+            const handle = link(vs, fs, gs) catch {
+                @panic(error_handling.getErrorMessage());
+            };
+            return Shader{
+                .handle = handle,
+                .location_map = std.StringHashMap(c_int).init(allocator),
+            };
+        } else {
+            const handle = link(vs, fs, null) catch {
+                @panic(error_handling.getErrorMessage());
+            };
+            return Shader{
+                .handle = handle,
+                .location_map = std.StringHashMap(c_int).init(allocator),
+            };
+        }
     }
 
     pub fn deinit(self: *Self) void {

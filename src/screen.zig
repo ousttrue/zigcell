@@ -9,12 +9,11 @@ const Cell = struct {
 
 const VS = @embedFile("./simple.vs");
 const FS = @embedFile("./simple.fs");
+const GS = @embedFile("./simple.gs");
 
 const Vec2 = std.meta.Tuple(&.{ f32, f32 });
 const vertices = [_]Vec2{
-    .{ -1, -1 },
-    .{ 1, -1 },
-    .{ 0, 1 },
+    .{ 0, 0 },
 };
 
 pub const Screen = struct {
@@ -29,7 +28,7 @@ pub const Screen = struct {
     vao: glo.Vao,
 
     pub fn new(allocator: std.mem.Allocator, font_size: u32) *Self {
-        var shader = glo.Shader.load(allocator, VS, FS) catch unreachable;
+        var shader = glo.Shader.load(allocator, VS, FS, GS) catch unreachable;
         var vbo = glo.Vbo.init();
         vbo.setVertices(Vec2, &vertices, false);
         var vao = glo.Vao.init(vbo, shader.createVertexLayout(allocator), null);
@@ -66,6 +65,6 @@ pub const Screen = struct {
         self.shader.use();
         defer self.shader.unuse();
 
-        self.vao.draw(3, .{});
+        self.vao.draw(1, .{ .topology = gl.POINTS });
     }
 };
