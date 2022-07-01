@@ -1,3 +1,6 @@
 [submodule "pkgs/glfw/_external/glfw"]
 	path = pkgs/glfw/_external/glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "pkgs/zig-opengl"]
+	path = pkgs/zig-opengl
+	url = https://github.com/MasterQ32/zig-opengl.git
