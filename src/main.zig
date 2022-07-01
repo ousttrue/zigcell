@@ -24,13 +24,13 @@ pub fn main() anyerror!void {
     glfw.glfwMakeContextCurrent(window);
     glfw.glfwSwapInterval(1);
 
-    var screen = Screen.new(allocator, 20);
-    defer screen.delete();
-
     try gl.load(window, getProc);
     std.log.info("OpenGL Version:  {s}", .{std.mem.span(gl.getString(gl.VERSION))});
     std.log.info("OpenGL Vendor:   {s}", .{std.mem.span(gl.getString(gl.VENDOR))});
     std.log.info("OpenGL Renderer: {s}", .{std.mem.span(gl.getString(gl.RENDERER))});
+
+    var screen = Screen.new(allocator, 20);
+    defer screen.delete();
 
     // Loop until the user closes the window
     while (glfw.glfwWindowShouldClose(window) == 0) {
