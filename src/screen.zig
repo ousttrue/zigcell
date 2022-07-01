@@ -18,6 +18,19 @@ pub fn screenToDevice(m: *[16]f32, width: f32, height: f32, xmod: u32, ymod: u32
     m[13] = 1 - ymargin;
 }
 
+pub fn readSource(allocator: std.mem.Allocator, arg: []const u8) ![:0]const u8 {
+    var file = try std.fs.cwd().openFile(arg, .{});
+    defer file.close();
+    const file_size = try file.getEndPos();
+
+    var buffer = try allocator.allocSentinel(u8, file_size, 0);
+    errdefer allocator.free(buffer);
+
+    const bytes_read = try file.read(buffer);
+    std.debug.assert(bytes_read == file_size);
+    return buffer;
+}
+
 pub const Screen = struct {
     const Self = @This();
 
@@ -28,6 +41,7 @@ pub const Screen = struct {
     shader: glo.Shader,
     vbo: glo.Vbo,
     vao: glo.Vao,
+    document: std.ArrayList(u16),
 
     pub fn new(allocator: std.mem.Allocator, font_size: u32) *Self {
         var shader = glo.Shader.load(allocator, VS, FS, GS) catch unreachable;
@@ -42,15 +56,25 @@ pub const Screen = struct {
             .shader = shader,
             .vbo = vbo,
             .vao = vao,
+            .document = std.ArrayList(u16).init(allocator),
         };
 
         vbo.setVertices(Vec2, &self.cells, true);
 
         return self;
     }
+
     pub fn delete(self: *Self) void {
         self.shader.deinit();
         self.allocator.destroy(self);
+    }
+
+    pub fn open(self: *Self, path: []const u8) !void {
+        const src = try readSource(self.allocator, path);
+        try self.document.resize(src.len);
+        const next = try std.unicode.utf8ToUtf16Le(self.document.items, src);
+        try self.document.resize(next);
+        std.log.debug("{}\n", .{next});
     }
 
     pub fn render(self: *Self, width: u32, height: u32) void {

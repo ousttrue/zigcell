@@ -32,6 +32,11 @@ pub fn main() anyerror!void {
     var screen = Screen.new(allocator, 30);
     defer screen.delete();
 
+    if (std.os.argv.len > 1) {
+        const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
+        try screen.open(arg1);
+    }
+
     // Loop until the user closes the window
     while (glfw.glfwWindowShouldClose(window) == 0) {
         // Poll for and process events
