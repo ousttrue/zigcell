@@ -1,2 +1,4 @@
 #version 110
-void main() { gl_FragColor = vec4(1, 1, 1, 1.0); }
+in vec2 TexCoords;
+
+void main() { gl_FragColor = vec4(TexCoords, 0, 1.0); }

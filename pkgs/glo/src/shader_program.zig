@@ -140,23 +140,33 @@ pub const Shader = struct {
         return location;
     }
 
-    pub fn _setMat4(_: *Self, location: c_int, transpose: bool, value: *const f32) void {
-        gl.uniformMatrix4fv(location, 1, if (transpose) gl.TRUE else gl.FALSE, value);
+    pub fn _setMat4(_: *Self, location: c_int, transpose: bool, value: []const f32) void {
+        gl.uniformMatrix4fv(location, 1, if (transpose) gl.TRUE else gl.FALSE, &value[0]);
     }
 
-    pub fn setMat4(self: *Self, name: []const u8, value: *const f32) void {
+    pub fn setMat4(self: *Self, name: []const u8, value: []const f32) void {
         if (self.getLocation(name)) |location| {
             self._setMat4(location, false, value);
         }
     }
 
-    pub fn _setVec4(_: *Self, location: c_int, value: *const f32) void {
-        gl.uniform4fv(location, 1, value);
+    pub fn _setVec4(_: *Self, location: c_int, value: []const f32) void {
+        gl.uniform4fv(location, 1, &value[0]);
     }
 
-    pub fn setVec4(self: *Self, name: []const u8, value: *const f32) void {
+    pub fn setVec4(self: *Self, name: []const u8, value: []const f32) void {
         if (self.getLocation(name)) |location| {
             self._setVec4(location, value);
+        }
+    }
+
+    pub fn _setVec2(_: *Self, location: c_int, value: []const f32) void {
+        gl.uniform2fv(location, 1, &value[0]);
+    }
+
+    pub fn setVec2(self: *Self, name: []const u8, value: []const f32) void {
+        if (self.getLocation(name)) |location| {
+            self._setVec2(location, value);
         }
     }
 

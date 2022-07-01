@@ -16,6 +16,13 @@ const vertices = [_]Vec2{
     .{ 0, 0 },
 };
 
+pub fn screenToDevice(m: *[16]f32, width: f32, height: f32) void {
+    m[0] = 2.0 / width;
+    m[5] = -(2.0 / height);
+    m[12] = -1;
+    m[13] = 1;
+}
+
 pub const Screen = struct {
     const Self = @This();
 
@@ -51,19 +58,34 @@ pub const Screen = struct {
         self.allocator.destroy(self);
     }
 
-    pub fn render(self: Self, width: u32, height: u32) void {
+    pub fn render(self: *Self, width: u32, height: u32) void {
         const rows = height / self.cell_height;
         const cols = width / self.cell_width;
 
         _ = rows;
         _ = cols;
 
+        // clear
         gl.viewport(0, 0, @intCast(c_int, width), @intCast(c_int, height));
         gl.clearColor(0.3, 0.6, 0.3, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         self.shader.use();
         defer self.shader.unuse();
+
+        const resolutionCellSize = [_]f32{
+            @intToFloat(f32, width), @intToFloat(f32, height), @intToFloat(f32, self.cell_width), @intToFloat(f32, self.cell_height),
+        };
+        self.shader.setVec4("ResolutionCellSize", &resolutionCellSize);
+
+        var projection: [16]f32 = .{
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1,
+        };
+        screenToDevice(&projection, @intToFloat(f32, width), @intToFloat(f32, height));
+        self.shader.setMat4("Projection", &projection);
 
         self.vao.draw(1, .{ .topology = gl.POINTS });
     }
