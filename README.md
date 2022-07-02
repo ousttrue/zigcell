@@ -1,9 +1,11 @@
 # zigcell
 zig code viewer
 
-## pkgs
+## TODO
 plan
 
-- glfw
-- fontstash
-- ast view
+- [x] glfw
+- [x] stb_truetype
+- [ ] scroll
+- [ ] imgui
+- [ ] zig ast viewer
