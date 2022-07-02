@@ -1,4 +1,9 @@
-#version 110
-in vec2 TexCoords;
+#version 460 core
 
-void main() { gl_FragColor = vec4(TexCoords, 0, 1.0); }
+in vec2 TexCoords;
+uniform sampler2D uTex;
+
+void main() {
+  vec4 texcel = texture(uTex, TexCoords);
+  gl_FragColor = vec4(1, 1, 1, texcel.x);
+}

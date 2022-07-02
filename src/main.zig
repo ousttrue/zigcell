@@ -37,7 +37,7 @@ pub fn main() anyerror!void {
         try screen.open(arg1);
     }
 
-    try screen.loadFont("C:/Windows/Fonts/consola.ttf");
+    try screen.loadFont("C:/Windows/Fonts/consola.ttf", 30, 1024);
 
     // Loop until the user closes the window
     while (glfw.glfwWindowShouldClose(window) == 0) {

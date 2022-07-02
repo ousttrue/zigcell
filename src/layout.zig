@@ -1,7 +1,13 @@
 const std = @import("std");
-pub const Vec2 = std.meta.Tuple(&.{ f32, f32 });
+const font = @import("./font.zig");
 
-fn fillCells(rows: u32, cols: u32, cells: []Vec2) u32 {
+pub const CellVertex = struct {
+    col: f32,
+    row: f32,
+    glyph: f32,
+};
+
+fn fillCells(rows: u32, cols: u32, cells: []CellVertex) u32 {
     var i: usize = 0;
     var y: i32 = 0;
     while (y < rows) : (y += 1) blk: {
@@ -13,7 +19,11 @@ fn fillCells(rows: u32, cols: u32, cells: []Vec2) u32 {
             if (i >= cells.len) {
                 break :blk;
             }
-            cells[i] = .{ @intToFloat(f32, x), @intToFloat(f32, y) };
+            cells[i] = .{
+                .col = @intToFloat(f32, x),
+                .row = @intToFloat(f32, y),
+                .glyph = 0,
+            };
         }
     }
     return @intCast(u32, i);
@@ -70,7 +80,7 @@ pub const LineLayout = struct {
     cols: u32 = 0,
     gen: u32 = 0,
 
-    pub fn layout(self: *Self, rows: u32, cols: u32, gen: u32, cells: []Vec2, document: ?[]const u16) ?u32 {
+    pub fn layout(self: *Self, rows: u32, cols: u32, gen: u32, cells: []CellVertex, document: ?[]const u16, atlas: *font.Atlas) ?u32 {
         if (rows == self.rows and cols == self.cols and gen == self.gen) {
             return null;
         }
@@ -87,9 +97,11 @@ pub const LineLayout = struct {
                 var line = r.getLine(cols) orelse break;
                 _ = line;
                 for (line) |c, col| {
-                    _ = c;
-                    // set cell
-                    cells[i] = .{ @intToFloat(f32, col), @intToFloat(f32, row) };
+                    cells[i] = .{
+                        .col = @intToFloat(f32, col),
+                        .row = @intToFloat(f32, row),
+                        .glyph = @intToFloat(f32, atlas.glyphIndexFromCodePoint(c)),
+                    };
                     i += 1;
                 }
             }
