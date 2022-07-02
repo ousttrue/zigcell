@@ -75,7 +75,7 @@ pub const LineLayout = struct {
             return null;
         }
 
-        std.log.debug("[{}]{}, {}", .{ rows, cols, gen });
+        std.log.debug("[{}]{}, {}", .{ gen, rows, cols });
         self.rows = rows;
         self.cols = cols;
         self.gen = gen;

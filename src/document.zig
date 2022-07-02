@@ -1,17 +1,5 @@
 const std = @import("std");
-
-pub fn readSource(allocator: std.mem.Allocator, arg: []const u8) ![:0]const u8 {
-    var file = try std.fs.cwd().openFile(arg, .{});
-    defer file.close();
-    const file_size = try file.getEndPos();
-
-    var buffer = try allocator.allocSentinel(u8, file_size, 0);
-    errdefer allocator.free(buffer);
-
-    const bytes_read = try file.read(buffer);
-    std.debug.assert(bytes_read == file_size);
-    return buffer;
-}
+const util = @import("./util.zig");
 
 pub const Document = struct {
     const Self = @This();
@@ -36,7 +24,7 @@ pub const Document = struct {
     }
 
     pub fn open(allocator: std.mem.Allocator, path: []const u8) ?Self {
-        if (readSource(allocator, path)) |src| {
+        if (util.readSource(allocator, path)) |src| {
             defer allocator.free(src);
             var self = Self.init(allocator);
             errdefer self.deinit();

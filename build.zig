@@ -1,5 +1,6 @@
 const std = @import("std");
 const glfw = @import("./pkgs/glfw/pkg.zig");
+const stb = @import("./pkgs/stb/pkg.zig");
 
 const gl_pkg = std.build.Pkg{
     .name = "gl",
@@ -34,6 +35,7 @@ pub fn build(b: *std.build.Builder) void {
     _ = glfw.addTo(allocator, exe, "pkgs/glfw");
     exe.addPackage(gl_pkg);
     exe.addPackage(glo_pkg);
+    _ = stb.addTo(allocator, exe, "pkgs/stb");
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());

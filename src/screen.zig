@@ -3,6 +3,7 @@ const gl = @import("gl");
 const glo = @import("glo");
 const Document = @import("./document.zig").Document;
 const layout = @import("./layout.zig");
+const font = @import("./font.zig");
 const Vec2 = layout.Vec2;
 
 const VS = @embedFile("./simple.vs");
@@ -33,6 +34,7 @@ pub const Screen = struct {
     gen: u32 = 0,
     layout: layout.LineLayout = .{},
     draw_count: u32 = 0,
+    atlas: font.Atlas,
 
     pub fn new(allocator: std.mem.Allocator, font_size: u32) *Self {
         var shader = glo.Shader.load(allocator, VS, FS, GS) catch unreachable;
@@ -47,6 +49,7 @@ pub const Screen = struct {
             .shader = shader,
             .vbo = vbo,
             .vao = vao,
+            .atlas = font.Atlas.init(allocator),
         };
 
         vbo.setVertices(Vec2, &self.cells, true);
