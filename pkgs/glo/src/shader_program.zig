@@ -140,6 +140,21 @@ pub const Shader = struct {
         return location;
     }
 
+    pub fn getBlockIndex(self: *Self, name: []const u8, binding_point: gl.GLuint) ?c_int {
+        if (self.location_map.get(name)) |location| {
+            return location;
+        }
+
+        const block_index = gl.getUniformBlockIndex(self.handle, &name[0]);
+        if (block_index < 0) {
+            return null;
+        }
+
+        gl.uniformBlockBinding(self.handle, block_index, binding_point);
+        self.location_map.put(name, @intCast(c_int, block_index)) catch @panic("put");
+        return @intCast(c_int, block_index);
+    }
+
     pub fn _setMat4(_: *Self, location: c_int, transpose: bool, value: []const f32) void {
         gl.uniformMatrix4fv(location, 1, if (transpose) gl.TRUE else gl.FALSE, &value[0]);
     }
@@ -167,6 +182,12 @@ pub const Shader = struct {
     pub fn setVec2(self: *Self, name: []const u8, value: []const f32) void {
         if (self.getLocation(name)) |location| {
             self._setVec2(location, value);
+        }
+    }
+
+    pub fn setUbo(self: *Self, name: []const u8, binding_point: c_uint, ubo: gl.GLuint) void {
+        if (self.getBlockIndex(name, binding_point)) |_| {
+            gl.bindBufferBase(gl.UNIFORM_BUFFER, binding_point, ubo);
         }
     }
 
