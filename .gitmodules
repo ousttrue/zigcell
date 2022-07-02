@@ -4,3 +4,6 @@
 [submodule "pkgs/zig-opengl"]
 	path = pkgs/zig-opengl
 	url = https://github.com/MasterQ32/zig-opengl.git
+[submodule "pkgs/stb/_external/stb"]
+	path = pkgs/stb/_external/stb
+	url = https://github.com/nothings/stb.git
