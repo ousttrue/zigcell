@@ -1,12 +1,13 @@
 const std = @import("std");
 const gl = @import("gl");
 const glo = @import("glo");
+const Document = @import("./document.zig").Document;
+const layout = @import("./layout.zig");
+const Vec2 = layout.Vec2;
 
 const VS = @embedFile("./simple.vs");
 const FS = @embedFile("./simple.fs");
 const GS = @embedFile("./simple.gs");
-
-const Vec2 = std.meta.Tuple(&.{ f32, f32 });
 
 pub fn screenToDevice(m: *[16]f32, width: f32, height: f32, xmod: u32, ymod: u32) void {
     const xmargin = @intToFloat(f32, xmod) / width;
@@ -16,19 +17,6 @@ pub fn screenToDevice(m: *[16]f32, width: f32, height: f32, xmod: u32, ymod: u32
     m[5] = -(2.0 / height);
     m[12] = -1 + xmargin;
     m[13] = 1 - ymargin;
-}
-
-pub fn readSource(allocator: std.mem.Allocator, arg: []const u8) ![:0]const u8 {
-    var file = try std.fs.cwd().openFile(arg, .{});
-    defer file.close();
-    const file_size = try file.getEndPos();
-
-    var buffer = try allocator.allocSentinel(u8, file_size, 0);
-    errdefer allocator.free(buffer);
-
-    const bytes_read = try file.read(buffer);
-    std.debug.assert(bytes_read == file_size);
-    return buffer;
 }
 
 pub const Screen = struct {
@@ -41,7 +29,10 @@ pub const Screen = struct {
     shader: glo.Shader,
     vbo: glo.Vbo,
     vao: glo.Vao,
-    document: std.ArrayList(u16),
+    document: ?Document = null,
+    gen: u32 = 0,
+    layout: layout.LineLayout = .{},
+    draw_count: u32 = 0,
 
     pub fn new(allocator: std.mem.Allocator, font_size: u32) *Self {
         var shader = glo.Shader.load(allocator, VS, FS, GS) catch unreachable;
@@ -56,7 +47,6 @@ pub const Screen = struct {
             .shader = shader,
             .vbo = vbo,
             .vao = vao,
-            .document = std.ArrayList(u16).init(allocator),
         };
 
         vbo.setVertices(Vec2, &self.cells, true);
@@ -70,11 +60,12 @@ pub const Screen = struct {
     }
 
     pub fn open(self: *Self, path: []const u8) !void {
-        const src = try readSource(self.allocator, path);
-        try self.document.resize(src.len);
-        const next = try std.unicode.utf8ToUtf16Le(self.document.items, src);
-        try self.document.resize(next);
-        std.log.debug("{}\n", .{next});
+        self.document = Document.open(self.allocator, path);
+        self.gen += 1;
+    }
+
+    fn getDocumentBuffer(self: Self) ?[]const u16 {
+        return if (self.document) |document| document.buffer.items else null;
     }
 
     pub fn render(self: *Self, width: u32, height: u32) void {
@@ -100,21 +91,14 @@ pub const Screen = struct {
         screenToDevice(&projection, @intToFloat(f32, width), @intToFloat(f32, height), width % self.cell_width, height % self.cell_height);
         self.shader.setMat4("Projection", &projection);
 
+        // layout cells
         const rows = height / self.cell_height;
         const cols = width / self.cell_width;
-        var i: usize = 0;
-        var y: i32 = 0;
-        while (y < rows) : (y += 1) {
-            var x: i32 = 0;
-            while (x < cols) : ({
-                x += 1;
-                i += 1;
-            }) {
-                self.cells[i] = .{ @intToFloat(f32, x), @intToFloat(f32, y) };
-            }
+        if (self.layout.layout(rows, cols, self.gen, &self.cells, self.getDocumentBuffer())) |draw_count| {
+            self.draw_count = draw_count;
+            self.vbo.update(self.cells, .{});
         }
-        self.vbo.update(self.cells, .{});
 
-        self.vao.draw(@intCast(u32, i), .{ .topology = gl.POINTS });
+        self.vao.draw(self.draw_count, .{ .topology = gl.POINTS });
     }
 };
