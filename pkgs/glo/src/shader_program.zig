@@ -81,22 +81,26 @@ pub const Shader = struct {
 
     pub fn load(allocator: std.mem.Allocator, vs_src: []const u8, fs_src: []const u8, gs_src: ?[]const u8) error_handling.ShaderError!Self {
         var vs = compile(gl.VERTEX_SHADER, vs_src) catch {
+            std.log.err("vs", .{});
             @panic(error_handling.getErrorMessage());
         };
         defer gl.deleteShader(vs);
 
         var fs = compile(gl.FRAGMENT_SHADER, fs_src) catch {
+            std.log.err("fs", .{});
             @panic(error_handling.getErrorMessage());
         };
         defer gl.deleteShader(fs);
 
         if (gs_src) |_gs| {
             var gs = compile(gl.GEOMETRY_SHADER, _gs) catch {
+                std.log.err("gs", .{});
                 @panic(error_handling.getErrorMessage());
             };
             defer gl.deleteShader(gs);
 
             const handle = link(vs, fs, gs) catch {
+                std.log.err("link", .{});
                 @panic(error_handling.getErrorMessage());
             };
             return Shader{
@@ -105,6 +109,7 @@ pub const Shader = struct {
             };
         } else {
             const handle = link(vs, fs, null) catch {
+                std.log.err("link", .{});
                 @panic(error_handling.getErrorMessage());
             };
             return Shader{

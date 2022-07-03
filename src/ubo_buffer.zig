@@ -12,4 +12,6 @@ pub const Global = extern struct {
     screenSize: [2]f32,
     cellSize: [2]f32,
     atlasSize: [2]f32,
+    ascent: f32,
+    descent: f32,
 };

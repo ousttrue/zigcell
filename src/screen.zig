@@ -11,14 +11,18 @@ const VS = @embedFile("./simple.vs");
 const FS = @embedFile("./simple.fs");
 const GS = @embedFile("./simple.gs");
 
-pub fn screenToDevice(m: *[16]f32, width: f32, height: f32, xmod: u32, ymod: u32) void {
-    const xmargin = @intToFloat(f32, xmod) / width;
-    const ymargin = @intToFloat(f32, ymod) / height;
+pub fn screenToDevice(m: *[16]f32, width: u32, height: u32, cell_width: u32, cell_height: u32) void {
+    const xmod = width % cell_width;
+    const xmargin = @intToFloat(f32, xmod) / @intToFloat(f32, width);
+    _ = xmargin;
+    const ymod = height % cell_height;
+    const ymargin = @intToFloat(f32, ymod) / @intToFloat(f32, height);
+    _ = ymargin;
 
-    m[0] = 2.0 / width;
-    m[5] = -(2.0 / height);
-    m[12] = -1 + xmargin;
-    m[13] = 1 - ymargin;
+    m[0] = 2.0 / @intToFloat(f32, width);
+    m[5] = -(2.0 / @intToFloat(f32, height));
+    m[12] = -1;
+    m[13] = 1;
 }
 
 pub const Screen = struct {
@@ -89,6 +93,8 @@ pub const Screen = struct {
         }
         self.ubo_glyphs.upload();
         self.ubo_global.buffer.atlasSize = .{ @intToFloat(f32, atlas_size), @intToFloat(f32, atlas_size) };
+        self.ubo_global.buffer.ascent = self.atlas.ascents[0];
+        self.ubo_global.buffer.descent = self.atlas.descents[0];
     }
 
     fn getDocumentBuffer(self: Self) ?[]const u16 {
@@ -110,7 +116,7 @@ pub const Screen = struct {
             0, 0, 1, 0,
             0, 0, 0, 1,
         };
-        screenToDevice(&self.ubo_global.buffer.projection, @intToFloat(f32, width), @intToFloat(f32, height), width % self.cell_width, height % self.cell_height);
+        screenToDevice(&self.ubo_global.buffer.projection, width, height, self.cell_width, self.cell_height);
         self.ubo_global.upload();
 
         self.shader.use();

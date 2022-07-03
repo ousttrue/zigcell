@@ -3,11 +3,16 @@ const stb = @import("stb");
 const glo = @import("glo");
 const util = @import("./util.zig");
 
+const GLYPH_COUNT = 95;
+
 pub const Atlas = struct {
     const Self = @This();
 
     allocator: std.mem.Allocator,
-    glyphs: [95]stb.stbtt_packedchar = undefined,
+    glyphs: [GLYPH_COUNT]stb.stbtt_packedchar = undefined,
+    ascents: [GLYPH_COUNT]f32 = undefined,
+    descents: [GLYPH_COUNT]f32 = undefined,
+    linegaps: [GLYPH_COUNT]f32 = undefined,
 
     pub fn new(allocator: std.mem.Allocator) *Self {
         var self = allocator.create(Self) catch unreachable;
@@ -55,10 +60,6 @@ pub const Atlas = struct {
         var info: stb.stbtt_fontinfo = undefined;
         _ = stb.stbtt_InitFont(&info, &ttf_buffer[0], stb.stbtt_GetFontOffsetForIndex(&ttf_buffer[0], 0));
 
-        var ascents: [ranges.len]f32 = undefined;
-        var descents: [ranges.len]f32 = undefined;
-        var linegaps: [ranges.len]f32 = undefined;
-
         for (ranges) |*r, i| {
             const scale = stb.stbtt_ScaleForPixelHeight(&info, r.font_size);
             _ = scale;
@@ -66,31 +67,31 @@ pub const Atlas = struct {
             var d: c_int = undefined;
             var l: c_int = undefined;
             stb.stbtt_GetFontVMetrics(&info, &a, &d, &l);
-            ascents[i] = @intToFloat(f32, a) * scale;
-            descents[i] = @intToFloat(f32, d) * scale;
-            linegaps[i] = @intToFloat(f32, l) * scale;
+            self.ascents[i] = @intToFloat(f32, a) * scale;
+            self.descents[i] = @intToFloat(f32, d) * scale;
+            self.linegaps[i] = @intToFloat(f32, l) * scale;
         }
 
-        for (ranges) |*r, j| {
-            std.log.debug("size    {}:", .{r.font_size});
-            std.log.debug("ascent  {}:", .{ascents[j]});
-            std.log.debug("descent {}:", .{descents[j]});
-            std.log.debug("linegap {}:", .{linegaps[j]});
-            for (self.glyphs) |g, i| {
-                std.log.debug("    '{}':  (x0,y0) = ({},{}),  (x1,y1) = ({},{}),  (xoff,yoff) = ({},{}),  (xoff2,yoff2) = ({},{}),  xadvance = {}", .{
-                    32 + i,
-                    g.x0,
-                    g.y0,
-                    g.x1,
-                    g.y1,
-                    g.xoff,
-                    g.yoff,
-                    g.xoff2,
-                    g.yoff2,
-                    g.xadvance,
-                });
-            }
-        }
+        // for (ranges) |*r, j| {
+        //     std.log.debug("size    {}:", .{r.font_size});
+        //     std.log.debug("ascent  {}:", .{self.ascents[j]});
+        //     std.log.debug("descent {}:", .{self.descents[j]});
+        //     std.log.debug("linegap {}:", .{self.linegaps[j]});
+        //     for (self.glyphs) |g, i| {
+        //         std.log.debug("    '{}':  (x0,y0) = ({},{}),  (x1,y1) = ({},{}),  (xoff,yoff) = ({},{}),  (xoff2,yoff2) = ({},{}),  xadvance = {}", .{
+        //             32 + i,
+        //             g.x0,
+        //             g.y0,
+        //             g.x1,
+        //             g.y1,
+        //             g.xoff,
+        //             g.yoff,
+        //             g.xoff2,
+        //             g.yoff2,
+        //             g.xadvance,
+        //         });
+        //     }
+        // }
 
         return glo.Texture.init(width, max_height, 1, bitmap);
     }
