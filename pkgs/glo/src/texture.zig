@@ -13,7 +13,7 @@ pub const Texture = struct {
         gl.genTextures(1, &self.handle);
     }
 
-    pub fn init(width: u32, height: u32, channels: c_int, data: []const u8) Texture {
+    pub fn init(width: u32, height: u32, channels: c_int, data: ?[]const u8) Texture {
         const pixelFormat: c_int = switch (channels) {
             1 => gl.RED,
             4 => gl.RGBA,
@@ -32,7 +32,7 @@ pub const Texture = struct {
         // gl.glPixelStorei(gl.UNPACK_ROW_LENGTH, width);
         gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0);
         gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
-        gl.texImage2D(gl.TEXTURE_2D, 0, texture.pixelFormat, @intCast(c_int, width), @intCast(c_int, height), 0, @intCast(c_uint, texture.pixelFormat), gl.UNSIGNED_BYTE, &data[0]);
+        gl.texImage2D(gl.TEXTURE_2D, 0, texture.pixelFormat, @intCast(c_int, width), @intCast(c_int, height), 0, @intCast(c_uint, texture.pixelFormat), gl.UNSIGNED_BYTE, if (data) |p| &p[0] else null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         return texture;

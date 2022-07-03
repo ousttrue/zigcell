@@ -10,7 +10,7 @@ pub const Fbo = struct {
     handle: [1]gl.GLuint = .{0},
     depth: [1]gl.GLuint = .{0},
 
-    fn _init(self: *Self, width: c_int, height: c_int, useDepth: bool) void {
+    fn _init(self: *Self, width: c_uint, height: c_uint, useDepth: bool) void {
         gl.genFramebuffers(self.handle.len, &self.handle[0]);
         if (useDepth) {
             gl.genRenderbuffers(self.depth.len, &self.depth[0]);
@@ -21,15 +21,15 @@ pub const Fbo = struct {
         gl.drawBuffers(drawBuffers.len, &drawBuffers[0]);
         if (useDepth) {
             gl.bindRenderbuffer(gl.RENDERBUFFER, self.depth[0]);
-            gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT, width, height);
+            gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT, @intCast(c_int, width), @intCast(c_int, height));
             gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, self.depth[0]);
         }
         self.unbind();
     }
 
-    pub fn init(width: c_int, height: c_int, use_depth: bool) Fbo {
+    pub fn init(width: c_uint, height: c_uint, use_depth: bool) Fbo {
         var self = Fbo{
-            .texture = Texture.init(width, height, gl.RGBA, null),
+            .texture = Texture.init(width, height, 4, null),
         };
         self._init(width, height, use_depth);
         // LOGGER.debug(f'fbo: {self.fbo}, texture: {self.texture}, depth: {self.depth}')
@@ -63,7 +63,7 @@ pub const FboManager = struct {
         }
     }
 
-    pub fn clear(self: *Self, width: c_int, height: c_int, color: *const [4]f32) ?*anyopaque {
+    pub fn clear(self: *Self, width: c_uint, height: c_uint, color: *const [4]f32) ?*anyopaque {
         if (width == 0 or height == 0) {
             return null;
         }
@@ -81,8 +81,8 @@ pub const FboManager = struct {
 
         if (self.fbo) |fbo| {
             fbo.bind();
-            gl.viewport(0, 0, width, height);
-            gl.scissor(0, 0, width, height);
+            gl.viewport(0, 0, @intCast(c_int, width), @intCast(c_int, height));
+            gl.scissor(0, 0, @intCast(c_int, width), @intCast(c_int, height));
             gl.clearColor(color[0] * color[3], color[1] * color[3], color[2] * color[3], color[3]);
             gl.clearDepth(1.0);
             gl.depthFunc(gl.LESS);
