@@ -7,9 +7,9 @@ const font = @import("./font.zig");
 const ubo_buffer = @import("./ubo_buffer.zig");
 const CellVertex = layout.CellVertex;
 
-const VS = @embedFile("./simple.vs");
-const FS = @embedFile("./simple.fs");
-const GS = @embedFile("./simple.gs");
+const VS = @embedFile("./shaders/cell_glyph.vs");
+const FS = @embedFile("./shaders/cell_glyph.fs");
+const GS = @embedFile("./shaders/cell_glyph.gs");
 
 pub fn screenToDevice(m: *[16]f32, width: u32, height: u32, cell_width: u32, cell_height: u32) void {
     const xmod = width % cell_width;
