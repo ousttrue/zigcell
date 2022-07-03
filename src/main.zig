@@ -3,7 +3,6 @@ const glfw = @import("glfw");
 const gl = @import("gl");
 const imgui = @import("imgui");
 const imgui_app = @import("./imgui_app.zig");
-const Screen = @import("./screen.zig").Screen;
 
 fn getProc(_: ?*glfw.GLFWwindow, name: [:0]const u8) ?*const anyopaque {
     return glfw.glfwGetProcAddress(@ptrCast([*:0]const u8, name));
@@ -35,16 +34,12 @@ pub fn main() anyerror!void {
     var app = imgui_app.ImGuiApp.init(allocator, window);
     defer app.deinit();
 
-    // scene
-    // var screen = Screen.new(allocator, 30);
-    // defer screen.delete();
+    if (std.os.argv.len > 1) {
+        const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
+        try app.screen.open(arg1);
+    }
 
-    // if (std.os.argv.len > 1) {
-    //     const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
-    //     try screen.open(arg1);
-    // }
-
-    // try screen.loadFont("C:/Windows/Fonts/consola.ttf", 30, 1024);
+    try app.screen.loadFont("C:/Windows/Fonts/consola.ttf", 30, 1024);
 
     // Loop until the user closes the window
     const io = imgui.GetIO();

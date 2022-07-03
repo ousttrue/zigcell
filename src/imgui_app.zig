@@ -4,12 +4,14 @@ const imgui = @import("imgui");
 const dockspace = @import("./dockspace.zig");
 const docks = @import("./docks.zig");
 const FboDock = @import("./fbo_dock.zig").FboDock;
+const Screen = @import("./screen.zig").Screen;
 
 pub const ImGuiApp = struct {
     const Self = @This();
 
     docks: std.ArrayList(dockspace.Dock),
-    fbo_dock: *FboDock,
+    screen: *Screen,
+    fbo_dock: *FboDock = undefined,
     metrics: docks.MetricsDock = .{},
 
     pub fn init(allocator: std.mem.Allocator, window: *anyopaque) Self {
@@ -41,9 +43,10 @@ pub const ImGuiApp = struct {
         _ = imgui.ImGui_ImplOpenGL3_Init(.{ .glsl_version = glsl_version });
 
         var self = Self{
-            .fbo_dock = FboDock.new(allocator),
+            .screen = Screen.new(allocator, 30),
             .docks = std.ArrayList(dockspace.Dock).init(allocator),
         };
+        self.fbo_dock = FboDock.new(allocator, self.screen);
 
         self.docks.append(dockspace.Dock.create(&self.metrics, "metrics")) catch unreachable;
         self.docks.append(dockspace.Dock.create(self.fbo_dock, "fbo")) catch unreachable;
@@ -53,6 +56,7 @@ pub const ImGuiApp = struct {
 
     pub fn deinit(self: *Self) void {
         self.fbo_dock.delete();
+        self.screen.delete();
         imgui.ImGui_ImplOpenGL3_Shutdown();
         imgui.ImGui_ImplGlfw_Shutdown();
         self.docks.deinit();

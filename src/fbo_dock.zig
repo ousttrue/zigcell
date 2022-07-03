@@ -1,8 +1,28 @@
 const std = @import("std");
 const glo = @import("glo");
 const imgui = @import("imgui");
+const TypeEraser = @import("./type_eraser.zig").TypeEraser;
 
 const FLT_MAX: f32 = 3.402823466e+38;
+
+const FboRenderer = struct {
+    const Self = @This();
+
+    ptr: *anyopaque,
+    callback: fn (ptr: *anyopaque, width: u32, height: u32) void,
+
+    pub fn render(self: *Self, width: u32, height: u32) void {
+        self.callback(self.ptr, width, height);
+    }
+
+    pub fn create(p: anytype) Self {
+        const T = @TypeOf(p.*);
+        return .{
+            .ptr = p,
+            .callback = TypeEraser(T, "render").call,
+        };
+    }
+};
 
 pub const FboDock = struct {
     const Self = @This();
@@ -12,12 +32,14 @@ pub const FboDock = struct {
     clear_color: [4]f32 = .{ 0, 0, 0, 0 },
     bg: imgui.ImVec4 = .{ .x = 0, .y = 0, .z = 0, .w = 0 },
     tint: imgui.ImVec4 = .{ .x = 1, .y = 1, .z = 1, .w = 1 },
+    renderer: FboRenderer,
 
-    pub fn new(allocator: std.mem.Allocator) *Self {
+    pub fn new(allocator: std.mem.Allocator, renderer: anytype) *Self {
         var self = allocator.create(Self) catch unreachable;
         self.* = Self{
             .allocator = allocator,
             .fbo = glo.FboManager{},
+            .renderer = FboRenderer.create(renderer),
         };
         return self;
     }
@@ -67,6 +89,7 @@ pub const FboDock = struct {
 
                 // self.gizmo.render(camera, mouse_input.x, mouse_input.y);
                 // self.scene.render(camera);
+                self.renderer.render(@floatToInt(u32, size.x), @floatToInt(u32, size.y));
             }
         }
     }
