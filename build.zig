@@ -38,7 +38,14 @@ pub fn build(b: *std.build.Builder) void {
     exe.addPackage(gl_pkg);
     exe.addPackage(glo_pkg);
     _ = stb.addTo(allocator, exe, "pkgs/stb");
-    _ = imgui.addTo(allocator, exe, "pkgs/imgui");
+    const imgui_pkg = imgui.addTo(allocator, exe, "pkgs/imgui");
+
+    const imutil_pkg = std.build.Pkg{
+        .name = "imutil",
+        .path = std.build.FileSource{ .path = "pkgs/imutil/src/main.zig" },
+        .dependencies = &.{gl_pkg, glo_pkg, imgui_pkg},
+    };
+    exe.addPackage(imutil_pkg);
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());

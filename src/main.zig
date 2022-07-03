@@ -2,7 +2,8 @@ const std = @import("std");
 const glfw = @import("glfw");
 const gl = @import("gl");
 const imgui = @import("imgui");
-const imgui_app = @import("./imgui_app.zig");
+const imutil = @import("imutil");
+const Screen = @import("./screen.zig").Screen;
 
 fn getProc(_: ?*glfw.GLFWwindow, name: [:0]const u8) ?*const anyopaque {
     return glfw.glfwGetProcAddress(@ptrCast([*:0]const u8, name));
@@ -31,15 +32,23 @@ pub fn main() anyerror!void {
     std.log.info("OpenGL Vendor:   {s}", .{std.mem.span(gl.getString(gl.VENDOR))});
     std.log.info("OpenGL Renderer: {s}", .{std.mem.span(gl.getString(gl.RENDERER))});
 
-    var app = imgui_app.ImGuiApp.init(allocator, window);
+    var app = imutil.ImGuiApp.init(allocator, window);
     defer app.deinit();
+
+    const font_size = 30;
+    var screen = Screen.new(allocator, font_size);
+    defer screen.delete();
+    var fbo_dock = imutil.FboDock.new(allocator, screen);
+    defer fbo_dock.delete();
+
+    try app.docks.append(imutil.Dock.create(fbo_dock, "fbo"));
 
     if (std.os.argv.len > 1) {
         const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
-        try app.screen.open(arg1);
+        try screen.open(arg1);
     }
 
-    try app.screen.loadFont("C:/Windows/Fonts/consola.ttf", 30, 1024);
+    try screen.loadFont("C:/Windows/Fonts/consola.ttf", 30, 1024);
 
     // Loop until the user closes the window
     const io = imgui.GetIO();
