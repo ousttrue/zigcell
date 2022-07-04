@@ -9,6 +9,7 @@ pub const ImGuiApp = struct {
     const Self = @This();
 
     docks: std.ArrayList(dockspace.Dock),
+    demo: docks.DemoDock = .{},
     metrics: docks.MetricsDock = .{},
 
     pub fn init(allocator: std.mem.Allocator, window: *anyopaque) Self {
@@ -44,6 +45,7 @@ pub const ImGuiApp = struct {
         };
 
         self.docks.append(dockspace.Dock.create(&self.metrics, "metrics")) catch unreachable;
+        self.docks.append(dockspace.Dock.create(&self.demo, "demo")) catch unreachable;
 
         return self;
     }

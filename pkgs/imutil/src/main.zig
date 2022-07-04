@@ -4,4 +4,5 @@ const dockspace = @import("./dockspace.zig");
 
 pub const ImGuiApp = imgui_app.ImGuiApp;
 pub const FboDock = fbo_dock.FboDock;
+pub const MouseInput = fbo_dock.MouseInput;
 pub const Dock = dockspace.Dock;

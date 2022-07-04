@@ -1,15 +1,17 @@
 const std = @import("std");
 const gl = @import("gl");
 const glo = @import("glo");
+const imutil = @import("imutil");
 const Document = @import("./document.zig").Document;
 const layout = @import("./layout.zig");
 const font = @import("./font.zig");
 const ubo_buffer = @import("./ubo_buffer.zig");
 const CellVertex = layout.CellVertex;
+const Cursor = @import("./cursor.zig").Cursor;
 
-const VS = @embedFile("./shaders/cell_glyph.vs");
-const FS = @embedFile("./shaders/cell_glyph.fs");
-const GS = @embedFile("./shaders/cell_glyph.gs");
+const CELL_GLYPH_VS = @embedFile("./shaders/cell_glyph.vs");
+const CELL_GLYPH_FS = @embedFile("./shaders/cell_glyph.fs");
+const CELL_GLYPH_GS = @embedFile("./shaders/cell_glyph.gs");
 
 pub fn screenToDevice(m: *[16]f32, width: u32, height: u32, cell_width: u32, cell_height: u32) void {
     const xmod = width % cell_width;
@@ -43,13 +45,15 @@ pub const Screen = struct {
     draw_count: u32 = 0,
     atlas: *font.Atlas,
     texture: ?glo.Texture = null,
+    cursor: *Cursor,
 
     pub fn new(allocator: std.mem.Allocator, font_size: u32) *Self {
-        var shader = glo.Shader.load(allocator, VS, FS, GS) catch unreachable;
+        var shader = glo.Shader.load(allocator, CELL_GLYPH_VS, CELL_GLYPH_FS, CELL_GLYPH_GS) catch unreachable;
         var vbo = glo.Vbo.init();
         var vao = glo.Vao.init(vbo, shader.createVertexLayout(allocator), null);
         var ubo_global = glo.Ubo(ubo_buffer.Global).init();
         var ubo_glyphs = glo.Ubo(ubo_buffer.Glyphs).init();
+        var cursor = Cursor.new(allocator);
 
         var self = allocator.create(Self) catch unreachable;
         self.* = .{
@@ -62,6 +66,7 @@ pub const Screen = struct {
             .ubo_global = ubo_global,
             .ubo_glyphs = ubo_glyphs,
             .atlas = font.Atlas.new(allocator),
+            .cursor = cursor,
         };
 
         vbo.setVertices(CellVertex, &self.cells, true);
@@ -101,43 +106,49 @@ pub const Screen = struct {
         return if (self.document) |document| document.buffer.items else null;
     }
 
-    pub fn render(self: *Self, width: u32, height: u32) void {
+    pub fn render(self: *Self, mouse_input: imutil.MouseInput) void {
+        if (mouse_input.is_active) {
+            // process keyboard event
+        }
+
         // clear
-        gl.viewport(0, 0, @intCast(c_int, width), @intCast(c_int, height));
+        gl.viewport(0, 0, @intCast(c_int, mouse_input.width), @intCast(c_int, mouse_input.height));
         gl.clearColor(0.3, 0.6, 0.3, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         // ubo_global
         self.ubo_global.buffer.cellSize = .{ @intToFloat(f32, self.cell_width), @intToFloat(f32, self.cell_height) };
-        self.ubo_global.buffer.screenSize = .{ @intToFloat(f32, width), @intToFloat(f32, height) };
+        self.ubo_global.buffer.screenSize = .{ @intToFloat(f32, mouse_input.width), @intToFloat(f32, mouse_input.height) };
         self.ubo_global.buffer.projection = .{
             1, 0, 0, 0,
             0, 1, 0, 0,
             0, 0, 1, 0,
             0, 0, 0, 1,
         };
-        screenToDevice(&self.ubo_global.buffer.projection, width, height, self.cell_width, self.cell_height);
+        screenToDevice(&self.ubo_global.buffer.projection, mouse_input.width, mouse_input.height, self.cell_width, self.cell_height);
         self.ubo_global.upload();
 
         self.shader.use();
         defer self.shader.unuse();
 
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         if (self.texture) |*texture| {
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
             texture.bind();
         }
         self.shader.setUbo("Global", 0, self.ubo_global.handle);
         self.shader.setUbo("Glyphs", 1, self.ubo_glyphs.handle);
 
         // layout cells
-        const rows = height / self.cell_height;
-        const cols = width / self.cell_width;
+        const rows = mouse_input.height / self.cell_height;
+        const cols = mouse_input.width / self.cell_width;
         if (self.layout.layout(rows, cols, self.gen, &self.cells, self.getDocumentBuffer(), self.atlas)) |draw_count| {
             self.draw_count = draw_count;
             self.vbo.update(self.cells, .{});
         }
 
         self.vao.draw(self.draw_count, .{ .topology = gl.POINTS });
+
+        self.cursor.draw(0, 0, self.ubo_global.handle);
     }
 };
