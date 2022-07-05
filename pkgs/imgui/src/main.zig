@@ -512,12 +512,12 @@ pub const ImGuiKey = enum(c_int) {
     _ModAlt = 643,
     _ModSuper = 644,
     _COUNT = 645,
-    _NamedKey_BEGIN = 512,
-    _NamedKey_END = 645,
+    // _NamedKey_BEGIN = 512,
+    // _NamedKey_END = 645,
     _NamedKey_COUNT = 133,
-    _KeysData_SIZE = 645,
-    _KeysData_OFFSET = 0,
-    _KeyPadEnter = 615,
+    // _KeysData_SIZE = 645,
+    // _KeysData_OFFSET = 0,
+    // _KeyPadEnter = 615,
 };
 
 pub const ImGuiModFlags = enum(c_int) {

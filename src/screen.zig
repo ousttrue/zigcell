@@ -1,6 +1,7 @@
 const std = @import("std");
 const gl = @import("gl");
 const glo = @import("glo");
+const imgui = @import("imgui");
 const imutil = @import("imutil");
 const Document = @import("./document.zig").Document;
 const layout = @import("./layout.zig");
@@ -107,8 +108,21 @@ pub const Screen = struct {
     }
 
     pub fn render(self: *Self, mouse_input: imutil.MouseInput) void {
-        if (mouse_input.is_active) {
-            // process keyboard event
+
+        // process keyboard event
+        if (imgui.IsItemFocused()) {
+            if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._DownArrow), .{})) {
+                self.cursor.row += 1;
+            }
+            if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._UpArrow), .{})) {
+                self.cursor.row -= 1;
+            }
+            if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._RightArrow), .{})) {
+                self.cursor.col += 1;
+            }
+            if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._LeftArrow), .{})) {
+                self.cursor.col -= 1;
+            }
         }
 
         // clear
@@ -149,6 +163,6 @@ pub const Screen = struct {
 
         self.vao.draw(self.draw_count, .{ .topology = gl.POINTS });
 
-        self.cursor.draw(0, 0, self.ubo_global.handle);
+        self.cursor.draw(rows, cols, self.ubo_global.handle);
     }
 };
