@@ -9,6 +9,7 @@ const font = @import("./font.zig");
 const ubo_buffer = @import("./ubo_buffer.zig");
 const CellVertex = layout.CellVertex;
 const Cursor = @import("./cursor.zig").Cursor;
+const CursorPosition = @import("./cursor_position.zig").CursorPosition;
 
 const CELL_GLYPH_VS = @embedFile("./shaders/cell_glyph.vs");
 const CELL_GLYPH_FS = @embedFile("./shaders/cell_glyph.fs");
@@ -117,16 +118,16 @@ pub const Screen = struct {
         // process keyboard event
         if (imgui.IsItemFocused()) {
             if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._DownArrow), .{})) {
-                self.cursor.row += 1;
+                self.layout.moveCursor(.{ .col = 0, .row = 1 });
             }
             if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._UpArrow), .{})) {
-                self.cursor.row -= 1;
+                self.layout.moveCursor(.{ .col = 0, .row = -1 });
             }
             if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._RightArrow), .{})) {
-                self.cursor.col += 1;
+                self.layout.moveCursor(.{ .col = 1, .row = 0 });
             }
             if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._LeftArrow), .{})) {
-                self.cursor.col -= 1;
+                self.layout.moveCursor(.{ .col = -1, .row = 0 });
             }
         }
 
@@ -159,8 +160,8 @@ pub const Screen = struct {
         self.shader.setUbo("Glyphs", 1, self.ubo_glyphs.handle);
 
         // layout cells
-        const rows = mouse_input.height / self.cell_height;
-        const cols = mouse_input.width / self.cell_width;
+        // const rows = mouse_input.height / self.cell_height;
+        // const cols = mouse_input.width / self.cell_width;
         if (self.document_gen != self.layout_gen) {
             self.layout_gen = self.document_gen;
             const draw_count = self.layout.layout(self.getDocumentBuffer(), self.atlas);
@@ -170,6 +171,6 @@ pub const Screen = struct {
 
         self.vao.draw(self.draw_count, .{ .topology = gl.POINTS });
 
-        self.cursor.draw(rows, cols, self.ubo_global.handle);
+        self.cursor.draw(self.layout.cursor_position, self.ubo_global.handle);
     }
 };

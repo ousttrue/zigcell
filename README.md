@@ -10,3 +10,9 @@ plan
 - [ ] cursor
 - [ ] zig ast
 - [ ] scroll
+
+## Cursor
+
+* document position. index of u16 document.
+* lined position. wrapped line and column.
+* cell position. scroll viewport.

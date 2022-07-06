@@ -1,5 +1,6 @@
 const std = @import("std");
 const font = @import("./font.zig");
+const CursorPosition = @import("./cursor_position.zig").CursorPosition;
 
 pub const CellVertex = struct {
     col: f32,
@@ -99,9 +100,7 @@ pub const LineLayout = struct {
     cells: [65536]CellVertex = undefined,
     cell_count: usize = 0,
     lines: std.ArrayList([]CellVertex),
-
-    current_row: usize = 0,
-    current_col: usize = 0,
+    cursor_position: CursorPosition = .{},
 
     pub fn new(allocator: std.mem.Allocator) *Self {
         var self = allocator.create(Self) catch unreachable;
@@ -138,5 +137,10 @@ pub const LineLayout = struct {
             self.lines.append(self.cells[head..self.cell_count]) catch unreachable;
         }
         return @intCast(u32, self.cell_count);
+    }
+
+    pub fn moveCursor(self: *Self, move: CursorPosition) void {
+        self.cursor_position.col += move.col;
+        self.cursor_position.row += move.row;
     }
 };
