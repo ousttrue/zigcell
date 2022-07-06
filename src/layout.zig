@@ -51,7 +51,26 @@ const LineReader = struct {
         };
     }
 
-    fn getLine(self: *Self, cols: u32) ?[]const u16 {
+    fn getLine(self: *Self) ?[]const u16 {
+        if (self.pos >= self.doc.len) {
+            return null;
+        }
+        const start = self.pos;
+        var i = start;
+        while (i < self.doc.len) : ({
+            i += 1;
+        }) {
+            if (self.doc[i] == '\n') {
+                i += 1;
+                break;
+            }
+        }
+        self.pos = i;
+
+        return self.doc[start..i];
+    }
+
+    fn getLineWithCols(self: *Self, cols: u32) ?[]const u16 {
         if (self.pos >= self.doc.len) {
             return null;
         }
@@ -76,38 +95,48 @@ const LineReader = struct {
 pub const LineLayout = struct {
     const Self = @This();
 
-    rows: u32 = 0,
-    cols: u32 = 0,
-    gen: u32 = 0,
+    allocator: std.mem.Allocator,
+    cells: [65536]CellVertex = undefined,
+    cell_count: usize = 0,
+    lines: std.ArrayList([]CellVertex),
 
-    pub fn layout(self: *Self, rows: u32, cols: u32, gen: u32, cells: []CellVertex, document: ?[]const u16, atlas: *font.Atlas) ?u32 {
-        if (rows == self.rows and cols == self.cols and gen == self.gen) {
-            return null;
-        }
+    current_row: usize = 0,
+    current_col: usize = 0,
 
-        std.log.debug("[{}]{}, {}", .{ gen, rows, cols });
-        self.rows = rows;
-        self.cols = cols;
-        self.gen = gen;
-        if (document) |doc| {
-            var r = LineReader.init(doc);
-            var row: u32 = 0;
-            var i: usize = 0;
-            while (row < rows) : (row += 1) {
-                var line = r.getLine(cols) orelse break;
-                _ = line;
-                for (line) |c, col| {
-                    cells[i] = .{
-                        .col = @intToFloat(f32, col),
-                        .row = @intToFloat(f32, row),
-                        .glyph = @intToFloat(f32, atlas.glyphIndexFromCodePoint(c)),
-                    };
-                    i += 1;
-                }
+    pub fn new(allocator: std.mem.Allocator) *Self {
+        var self = allocator.create(Self) catch unreachable;
+        self.* = Self{
+            .allocator = allocator,
+            .lines = std.ArrayList([]CellVertex).init(allocator),
+        };
+        return self;
+    }
+
+    pub fn delete(self: *Self) void {
+        self.allocator.destroy(self);
+    }
+
+    pub fn layout(self: *Self, document: ?[]const u16, atlas: *font.Atlas) u32 {
+        self.lines.resize(0) catch unreachable;
+        self.cell_count = 0;
+
+        const doc = document orelse return 0;
+        var r = LineReader.init(doc);
+        var row: u32 = 0;
+        // each line
+        while (true) : (row += 1) {
+            var line = r.getLine() orelse break;
+            const head = self.cell_count;
+            for (line) |c, col| {
+                self.cells[self.cell_count] = .{
+                    .col = @intToFloat(f32, col),
+                    .row = @intToFloat(f32, row),
+                    .glyph = @intToFloat(f32, atlas.glyphIndexFromCodePoint(c)),
+                };
+                self.cell_count += 1;
             }
-            return @intCast(u32, i);
-        } else {
-            return fillCells(rows, cols, cells);
+            self.lines.append(self.cells[head..self.cell_count]) catch unreachable;
         }
+        return @intCast(u32, self.cell_count);
     }
 };

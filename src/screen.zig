@@ -34,19 +34,22 @@ pub const Screen = struct {
     allocator: std.mem.Allocator,
     cell_width: u32,
     cell_height: u32,
-    cells: [65536]CellVertex = undefined,
     shader: glo.Shader,
     vbo: glo.Vbo,
     vao: glo.Vao,
     ubo_global: glo.Ubo(ubo_buffer.Global),
     ubo_glyphs: glo.Ubo(ubo_buffer.Glyphs),
+
     document: ?Document = null,
-    gen: u32 = 0,
-    layout: layout.LineLayout = .{},
+    document_gen: usize = 0,
+
     draw_count: u32 = 0,
     atlas: *font.Atlas,
     texture: ?glo.Texture = null,
     cursor: *Cursor,
+
+    layout: *layout.LineLayout,
+    layout_gen: usize = 0,
 
     pub fn new(allocator: std.mem.Allocator, font_size: u32) *Self {
         var shader = glo.Shader.load(allocator, CELL_GLYPH_VS, CELL_GLYPH_FS, CELL_GLYPH_GS) catch unreachable;
@@ -68,14 +71,16 @@ pub const Screen = struct {
             .ubo_glyphs = ubo_glyphs,
             .atlas = font.Atlas.new(allocator),
             .cursor = cursor,
+            .layout = layout.LineLayout.new(allocator),
         };
 
-        vbo.setVertices(CellVertex, &self.cells, true);
+        vbo.setVertices(CellVertex, &self.layout.cells, true);
 
         return self;
     }
 
     pub fn delete(self: *Self) void {
+        self.layout.delete();
         if (self.texture) |*texture| {
             texture.deinit();
         }
@@ -86,7 +91,7 @@ pub const Screen = struct {
 
     pub fn open(self: *Self, path: []const u8) !void {
         self.document = Document.open(self.allocator, path);
-        self.gen += 1;
+        self.document_gen += 1;
     }
 
     pub fn loadFont(self: *Self, path: []const u8, font_size: f32, atlas_size: u32) !void {
@@ -156,9 +161,11 @@ pub const Screen = struct {
         // layout cells
         const rows = mouse_input.height / self.cell_height;
         const cols = mouse_input.width / self.cell_width;
-        if (self.layout.layout(rows, cols, self.gen, &self.cells, self.getDocumentBuffer(), self.atlas)) |draw_count| {
+        if (self.document_gen != self.layout_gen) {
+            self.layout_gen = self.document_gen;
+            const draw_count = self.layout.layout(self.getDocumentBuffer(), self.atlas);
             self.draw_count = draw_count;
-            self.vbo.update(self.cells, .{});
+            self.vbo.update(self.layout.cells, .{});
         }
 
         self.vao.draw(self.draw_count, .{ .topology = gl.POINTS });
