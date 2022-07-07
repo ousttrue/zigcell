@@ -140,7 +140,27 @@ pub const LineLayout = struct {
     }
 
     pub fn moveCursor(self: *Self, move: CursorPosition) void {
-        self.cursor_position.col += move.col;
+        if (self.lines.items.len == 0) {
+            self.cursor_position.row = 0;
+            self.cursor_position.col = 0;
+            return;
+        }
+
         self.cursor_position.row += move.row;
+        if (self.cursor_position.row >= self.lines.items.len) {
+            self.cursor_position.row = @intCast(i32, self.lines.items.len - 1);
+        }
+
+        if (self.cursor_position.row < 0) {
+            self.cursor_position.row = 0;
+        } else if (self.cursor_position.row >= self.lines.items.len) {
+            self.cursor_position.row = @intCast(i32, self.lines.items.len - 1);
+        }
+
+        var line = self.lines.items[@intCast(usize, self.cursor_position.row)];
+        self.cursor_position.col += move.col;
+        if (self.cursor_position.col < 0) {
+            self.cursor_position.col = 0;
+        }
     }
 };
