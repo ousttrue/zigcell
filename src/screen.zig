@@ -10,6 +10,7 @@ const ubo_buffer = @import("./ubo_buffer.zig");
 const CellVertex = layout.CellVertex;
 const Cursor = @import("./cursor.zig").Cursor;
 const CursorPosition = @import("./cursor_position.zig").CursorPosition;
+const Ast = @import("./ast.zig").Ast;
 
 const CELL_GLYPH_VS = @embedFile("./shaders/cell_glyph.vs");
 const CELL_GLYPH_FS = @embedFile("./shaders/cell_glyph.fs");
@@ -70,6 +71,7 @@ pub const Screen = struct {
 
     document: ?Document = null,
     document_gen: usize = 0,
+    ast: ?*Ast = null,
 
     draw_count: u32 = 0,
     atlas: *font.Atlas,
@@ -121,6 +123,9 @@ pub const Screen = struct {
     pub fn open(self: *Self, path: []const u8) !void {
         self.document = Document.open(self.allocator, path);
         self.document_gen += 1;
+        if (self.document) |document| {
+            self.ast = try Ast.parse(self.allocator, document.buffer.items);
+        }
     }
 
     pub fn loadFont(self: *Self, path: []const u8, font_size: f32, atlas_size: u32) !void {
