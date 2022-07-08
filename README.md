@@ -7,9 +7,9 @@ plan
 - [x] glfw
 - [x] stb_truetype
 - [x] imgui
-- [ ] cursor
+- [x] cursor
+- [x] scroll
 - [ ] zig ast
-- [ ] scroll
 
 ## Cursor
 

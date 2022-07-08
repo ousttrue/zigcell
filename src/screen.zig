@@ -15,21 +15,45 @@ const CELL_GLYPH_VS = @embedFile("./shaders/cell_glyph.vs");
 const CELL_GLYPH_FS = @embedFile("./shaders/cell_glyph.fs");
 const CELL_GLYPH_GS = @embedFile("./shaders/cell_glyph.gs");
 
-pub fn screenToDevice(m: *[16]f32, width: u32, height: u32, cell_width: u32, cell_height: u32, scroll_top_left: CursorPosition, cursor_position: CursorPosition) CursorPosition {
-    const xmod = width % cell_width;
-    const xmargin = @intToFloat(f32, xmod) / @intToFloat(f32, width);
-    _ = xmargin;
-    const ymod = height % cell_height;
-    const ymargin = @intToFloat(f32, ymod) / @intToFloat(f32, height);
-    _ = ymargin;
+pub fn screenToDevice(
+    m: *[16]f32,
+    width: i32,
+    height: i32,
+    cell_width: i32,
+    cell_height: i32,
+    scroll_top_left: CursorPosition,
+    cursor_position: CursorPosition,
+) CursorPosition {
+    const cols = @divTrunc(width, cell_width);
+    const rows = @divTrunc(height, cell_height);
+    // const xmod = @mod(width, cell_width);
+    // const xmargin = @intToFloat(f32, xmod) / @intToFloat(f32, width);
+    // _ = xmargin;
+    // const ymod = height % cell_height;
+    // const ymargin = @intToFloat(f32, ymod) / @intToFloat(f32, height);
+    // _ = ymargin;
+
+    var new_left_top = scroll_top_left;
+    const dx = cursor_position.col - scroll_top_left.col;
+    if (dx >= cols) {
+        new_left_top.col += (dx - cols + 1);
+    } else if (cursor_position.col < scroll_top_left.col) {
+        new_left_top.col = cursor_position.col;
+    }
+
+    const dy = cursor_position.row - scroll_top_left.row;
+    if (dy >= rows) {
+        new_left_top.row += (dy - rows + 1);
+    } else if (cursor_position.row < scroll_top_left.row) {
+        new_left_top.row = cursor_position.row;
+    }
 
     m[0] = 2.0 / @intToFloat(f32, width);
     m[5] = -(2.0 / @intToFloat(f32, height));
-    m[12] = -1;
-    m[13] = 1;
+    m[12] = -1 - @intToFloat(f32, new_left_top.col) * @intToFloat(f32, cell_width) / @intToFloat(f32, width) * 2;
+    m[13] = 1 + @intToFloat(f32, new_left_top.row) * @intToFloat(f32, cell_height) / @intToFloat(f32, height) * 2;
 
-    _ = cursor_position;
-    return scroll_top_left;
+    return new_left_top;
 }
 
 pub const Screen = struct {
@@ -149,7 +173,15 @@ pub const Screen = struct {
             0, 0, 1, 0,
             0, 0, 0, 1,
         };
-        self.scroll_top_left = screenToDevice(&self.ubo_global.buffer.projection, mouse_input.width, mouse_input.height, self.cell_width, self.cell_height, self.scroll_top_left, self.layout.cursor_position);
+        self.scroll_top_left = screenToDevice(
+            &self.ubo_global.buffer.projection,
+            @intCast(i32, mouse_input.width),
+            @intCast(i32, mouse_input.height),
+            @intCast(i32, self.cell_width),
+            @intCast(i32, self.cell_height),
+            self.scroll_top_left,
+            self.layout.cursor_position,
+        );
         self.ubo_global.upload();
 
         self.shader.use();
