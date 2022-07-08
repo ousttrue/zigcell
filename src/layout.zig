@@ -157,7 +157,7 @@ pub const LineLayout = struct {
             self.cursor_position.row = @intCast(i32, self.lines.items.len - 1);
         }
 
-        var line = self.lines.items[@intCast(usize, self.cursor_position.row)];
+        // var line = self.lines.items[@intCast(usize, self.cursor_position.row)];
         self.cursor_position.col += move.col;
         if (self.cursor_position.col < 0) {
             self.cursor_position.col = 0;

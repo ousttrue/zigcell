@@ -15,7 +15,7 @@ const CELL_GLYPH_VS = @embedFile("./shaders/cell_glyph.vs");
 const CELL_GLYPH_FS = @embedFile("./shaders/cell_glyph.fs");
 const CELL_GLYPH_GS = @embedFile("./shaders/cell_glyph.gs");
 
-pub fn screenToDevice(m: *[16]f32, width: u32, height: u32, cell_width: u32, cell_height: u32) void {
+pub fn screenToDevice(m: *[16]f32, width: u32, height: u32, cell_width: u32, cell_height: u32, scroll_top_left: CursorPosition, cursor_position: CursorPosition) CursorPosition {
     const xmod = width % cell_width;
     const xmargin = @intToFloat(f32, xmod) / @intToFloat(f32, width);
     _ = xmargin;
@@ -27,6 +27,9 @@ pub fn screenToDevice(m: *[16]f32, width: u32, height: u32, cell_width: u32, cel
     m[5] = -(2.0 / @intToFloat(f32, height));
     m[12] = -1;
     m[13] = 1;
+
+    _ = cursor_position;
+    return scroll_top_left;
 }
 
 pub const Screen = struct {
@@ -51,6 +54,7 @@ pub const Screen = struct {
 
     layout: *layout.LineLayout,
     layout_gen: usize = 0,
+    scroll_top_left: CursorPosition = .{},
 
     pub fn new(allocator: std.mem.Allocator, font_size: u32) *Self {
         var shader = glo.Shader.load(allocator, CELL_GLYPH_VS, CELL_GLYPH_FS, CELL_GLYPH_GS) catch unreachable;
@@ -145,7 +149,7 @@ pub const Screen = struct {
             0, 0, 1, 0,
             0, 0, 0, 1,
         };
-        screenToDevice(&self.ubo_global.buffer.projection, mouse_input.width, mouse_input.height, self.cell_width, self.cell_height);
+        self.scroll_top_left = screenToDevice(&self.ubo_global.buffer.projection, mouse_input.width, mouse_input.height, self.cell_width, self.cell_height, self.scroll_top_left, self.layout.cursor_position);
         self.ubo_global.upload();
 
         self.shader.use();
