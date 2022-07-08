@@ -4,6 +4,7 @@ const gl = @import("gl");
 const imgui = @import("imgui");
 const imutil = @import("imutil");
 const Screen = @import("./screen.zig").Screen;
+const CursorDock = @import("./cursor_dock.zig");
 
 fn getProc(_: ?*glfw.GLFWwindow, name: [:0]const u8) ?*const anyopaque {
     return glfw.glfwGetProcAddress(@ptrCast([*:0]const u8, name));
@@ -38,10 +39,16 @@ pub fn main() anyerror!void {
     const font_size = 30;
     var screen = Screen.new(allocator, font_size);
     defer screen.delete();
+
+    // fbo dock
     var fbo_dock = imutil.FboDock.new(allocator, screen);
     defer fbo_dock.delete();
-
     try app.docks.append(imutil.Dock.create(fbo_dock, "fbo"));
+
+    // cursor dock
+    var cursor_dock = CursorDock.new(allocator, screen);
+    defer cursor_dock.delete();
+    try app.docks.append(imutil.Dock.create(cursor_dock, "cursor"));
 
     if (std.os.argv.len > 1) {
         const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
