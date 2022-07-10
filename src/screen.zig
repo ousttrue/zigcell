@@ -10,7 +10,7 @@ const ubo_buffer = @import("./ubo_buffer.zig");
 const CellVertex = layout.CellVertex;
 const Cursor = @import("./cursor.zig").Cursor;
 const CursorPosition = @import("./cursor_position.zig").CursorPosition;
-const Ast = @import("./ast.zig").Ast;
+const Parser = @import("./parser.zig").Parser;
 
 const CELL_GLYPH_VS = @embedFile("./shaders/cell_glyph.vs");
 const CELL_GLYPH_FS = @embedFile("./shaders/cell_glyph.fs");
@@ -27,12 +27,6 @@ pub fn screenToDevice(
 ) CursorPosition {
     const cols = @divTrunc(width, cell_width);
     const rows = @divTrunc(height, cell_height);
-    // const xmod = @mod(width, cell_width);
-    // const xmargin = @intToFloat(f32, xmod) / @intToFloat(f32, width);
-    // _ = xmargin;
-    // const ymod = height % cell_height;
-    // const ymargin = @intToFloat(f32, ymod) / @intToFloat(f32, height);
-    // _ = ymargin;
 
     var new_left_top = scroll_top_left;
     const dx = cursor_position.col - scroll_top_left.col;
@@ -71,7 +65,7 @@ pub const Screen = struct {
 
     document: ?Document = null,
     document_gen: usize = 0,
-    ast: ?*Ast = null,
+    parser: ?*Parser = null,
 
     draw_count: u32 = 0,
     atlas: *font.Atlas,
@@ -124,7 +118,7 @@ pub const Screen = struct {
         self.document = Document.open(self.allocator, path);
         self.document_gen += 1;
         if (self.document) |document| {
-            self.ast = try Ast.parse(self.allocator, document.buffer.items);
+            self.parser = try Parser.parse(self.allocator, document.buffer.items);
         }
     }
 
@@ -200,9 +194,6 @@ pub const Screen = struct {
         self.shader.setUbo("Global", 0, self.ubo_global.handle);
         self.shader.setUbo("Glyphs", 1, self.ubo_glyphs.handle);
 
-        // layout cells
-        // const rows = mouse_input.height / self.cell_height;
-        // const cols = mouse_input.width / self.cell_width;
         if (self.document_gen != self.layout_gen) {
             self.layout_gen = self.document_gen;
             const draw_count = self.layout.layout(self.getDocumentBuffer(), self.atlas);

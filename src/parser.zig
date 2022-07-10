@@ -1,13 +1,14 @@
 const std = @import("std");
+const analysis = @import("./analysis.zig");
 
-pub const Ast = struct {
+pub const Parser = struct {
     const Self = @This();
 
     allocator: std.mem.Allocator,
     tree: std.zig.Ast,
 
     pub fn new(allocator: std.mem.Allocator, tree: std.zig.Ast) *Self {
-        var self = allocator.create(Ast) catch unreachable;
+        var self = allocator.create(Self) catch unreachable;
         self.* = Self{
             .allocator = allocator,
             .tree = tree,
@@ -22,7 +23,10 @@ pub const Ast = struct {
     pub fn parse(allocator: std.mem.Allocator, src: []const u16) !*Self {
         const text = try std.unicode.utf16leToUtf8AllocZ(allocator, src);
         defer allocator.free(text);
-        var tree = try std.zig.parse(allocator, text);
+        const tree: std.zig.Ast = try std.zig.parse(allocator, text);
+
+        // const scope = analysis.makeDocumentScope();
+
         errdefer tree.deinit(allocator);
         return Self.new(allocator, tree);
     }
