@@ -1,5 +1,5 @@
 const std = @import("std");
-const analysis = @import("./analysis.zig");
+const zls = @import("zls");
 
 pub const Parser = struct {
     const Self = @This();
@@ -25,7 +25,8 @@ pub const Parser = struct {
         defer allocator.free(text);
         const tree: std.zig.Ast = try std.zig.parse(allocator, text);
 
-        // const scope = analysis.makeDocumentScope();
+        const scope = try zls.analysis.makeDocumentScope(allocator, tree);
+        scope.debugPrint();
 
         errdefer tree.deinit(allocator);
         return Self.new(allocator, tree);
