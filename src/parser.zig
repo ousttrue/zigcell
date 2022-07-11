@@ -40,18 +40,46 @@ fn nodeSourceRange(tree: std.zig.Ast, node: std.zig.Ast.Node.Index) SourceRange 
     };
 }
 
-fn traverse(tree: std.zig.Ast, node_idx: u32, level: u32) void {
+fn traverse(tree: std.zig.Ast, node_idx: u32, level: u32, prefix: []const u8) void {
     const tags = tree.nodes.items(.tag);
+    const data = tree.nodes.items(.data);
+
     const node_tag = tags[node_idx];
     const range = nodeSourceRange(tree, node_idx);
-    std.debug.print("[{d:0>3}]{s}{s}: {}..{}\n", .{ node_idx, indent(level), @tagName(node_tag), range.start, range.end });
+    std.debug.print("\n[{d:0>3}]{s}{s}{s}: {}..{}", .{ node_idx, indent(level), prefix, @tagName(node_tag), range.start, range.end });
 
-    // children
     if (zls.ast.isContainer(tree, node_idx)) {
+        // children
         var buf: [2]std.zig.Ast.Node.Index = undefined;
         const ast_decls = zls.ast.declMembers(tree, node_idx, &buf);
         for (ast_decls) |decl| {
-            traverse(tree, decl, level + 1);
+            traverse(tree, decl, level + 1, "");
+        }
+    } else {
+        // detail
+        switch (node_tag) {
+            .simple_var_decl => {
+                const var_decl = tree.simpleVarDecl(node_idx);
+                if (var_decl.ast.type_node != 0) {
+                    traverse(tree, var_decl.ast.type_node, level + 1, "[type_node]");
+                }
+                if (var_decl.ast.init_node != 0) {
+                    traverse(tree, var_decl.ast.init_node, level + 1, "[init_node]");
+                }
+            },
+            .builtin_call_two => {
+                const b_data = data[node_idx];
+                if (b_data.lhs != 0) {
+                    traverse(tree, b_data.lhs, level + 1, "[lhs]");
+                    if (b_data.rhs != 0) {
+                        traverse(tree, b_data.rhs, level + 1, "[rhs]");
+                    }
+                }
+            },
+            .fn_decl => {},
+            else => {
+                // unknown
+            },
         }
     }
 }
@@ -82,7 +110,7 @@ pub const Parser = struct {
 
         // const scope = try zls.analysis.makeDocumentScope(allocator, tree);
         // scope.debugPrint();
-        traverse(tree, 0, 0);
+        traverse(tree, 0, 0, "");
 
         errdefer tree.deinit(allocator);
         return Self.new(allocator, tree);
