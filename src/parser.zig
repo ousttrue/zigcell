@@ -8,12 +8,7 @@ fn indent(level: usize) []const u8 {
 }
 
 /// Token location inside source
-pub const Loc = struct {
-    start: usize,
-    end: usize,
-};
-
-pub fn tokenLocation(tree: std.zig.Ast, token_index: std.zig.Ast.TokenIndex) Loc {
+pub fn getToken(tree: std.zig.Ast, token_index: std.zig.Ast.TokenIndex) std.zig.Token {
     const start = tree.tokens.items(.start)[token_index];
     const tag = tree.tokens.items(.tag)[token_index];
 
@@ -26,7 +21,7 @@ pub fn tokenLocation(tree: std.zig.Ast, token_index: std.zig.Ast.TokenIndex) Loc
 
     const token = tokenizer.next();
     std.debug.assert(token.tag == tag);
-    return .{ .start = token.loc.start, .end = token.loc.end };
+    return token;
 }
 
 const SourceRange = struct {
@@ -36,12 +31,12 @@ const SourceRange = struct {
     source: []const u8,
 
     fn init(tree: std.zig.Ast, node: std.zig.Ast.Node.Index) Self {
-        const loc_start = tokenLocation(tree, tree.firstToken(node));
-        const loc_end = tokenLocation(tree, zls.ast.lastToken(tree, node));
+        const start = getToken(tree, tree.firstToken(node));
+        const end = getToken(tree, zls.ast.lastToken(tree, node));
         return Self{
-            .start = loc_start.start,
-            .end = loc_end.end,
-            .source = tree.source[loc_start.start..loc_end.end],
+            .start = start.loc.start,
+            .end = end.loc.end,
+            .source = tree.source[start.loc.start..end.loc.end],
         };
     }
 };
