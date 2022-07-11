@@ -1,16 +1,50 @@
 const std = @import("std");
 const zls = @import("zls");
+pub const SourceRange = std.zig.Token.Loc;
 
 const indent_buffer = " " ** 1024;
 
 fn indent(level: usize) []const u8 {
-    return indent_buffer[0..level];
+    return indent_buffer[0 .. level * 2];
+}
+
+/// Token location inside source
+pub const Loc = struct {
+    start: usize,
+    end: usize,
+};
+
+pub fn tokenLocation(tree: std.zig.Ast, token_index: std.zig.Ast.TokenIndex) Loc {
+    const start = tree.tokens.items(.start)[token_index];
+    const tag = tree.tokens.items(.tag)[token_index];
+
+    // For some tokens, re-tokenization is needed to find the end.
+    var tokenizer: std.zig.Tokenizer = .{
+        .buffer = tree.source,
+        .index = start,
+        .pending_invalid_token = null,
+    };
+
+    const token = tokenizer.next();
+    std.debug.assert(token.tag == tag);
+    return .{ .start = token.loc.start, .end = token.loc.end };
+}
+
+fn nodeSourceRange(tree: std.zig.Ast, node: std.zig.Ast.Node.Index) SourceRange {
+    const loc_start = tokenLocation(tree, tree.firstToken(node));
+    const loc_end = tokenLocation(tree, zls.ast.lastToken(tree, node));
+
+    return SourceRange{
+        .start = loc_start.start,
+        .end = loc_end.end,
+    };
 }
 
 fn traverse(tree: std.zig.Ast, node_idx: u32, level: u32) void {
     const tags = tree.nodes.items(.tag);
     const node_tag = tags[node_idx];
-    std.debug.print("[{d:0>3}]{s}{s}\n", .{ node_idx, indent(level), @tagName(node_tag) });
+    const range = nodeSourceRange(tree, node_idx);
+    std.debug.print("[{d:0>3}]{s}{s}: {}..{}\n", .{ node_idx, indent(level), @tagName(node_tag), range.start, range.end });
 
     // children
     if (zls.ast.isContainer(tree, node_idx)) {
