@@ -57,6 +57,7 @@ pub const Parser = struct {
     allocator: std.mem.Allocator,
     tree: std.zig.Ast,
     node_stack: std.ArrayList(u32),
+    tokens: std.ArrayList(std.zig.Token),
 
     pub fn new(allocator: std.mem.Allocator, tree: std.zig.Ast) *Self {
         var self = allocator.create(Self) catch unreachable;
@@ -64,11 +65,29 @@ pub const Parser = struct {
             .allocator = allocator,
             .tree = tree,
             .node_stack = std.ArrayList(u32).init(allocator),
+            .tokens = std.ArrayList(std.zig.Token).init(allocator),
         };
+
+        // For some tokens, re-tokenization is needed to find the end.
+        var tokenizer: std.zig.Tokenizer = .{
+            .buffer = tree.source,
+            .index = 0,
+            .pending_invalid_token = null,
+        };
+
+        while (true) {
+            const token = tokenizer.next();
+            if (token.tag == .eof) {
+                break;
+            }
+            self.tokens.append(token) catch unreachable;
+        }
+
         return self;
     }
 
     pub fn delete(self: Self) void {
+        self.tokens.deinit();
         self.node_stack.deinit(self.allocator);
         self.allocator.destroy(self);
     }
@@ -95,6 +114,14 @@ pub const Parser = struct {
 
         const node_tag = tags[node_idx];
         const range = SourceRange.init(tree, node_idx);
+
+        const start = tree.firstToken(node_idx);
+        var end = zls.ast.lastToken(tree, node_idx);
+        if (end < self.tokens.items.len) {
+            end += 1;
+        }
+        const tokens = self.tokens.items[start..end];
+
         std.debug.print(
             "\n[{d:0>3}]{s}{s}{s}: {}..{}=> {s}",
             .{
@@ -102,11 +129,14 @@ pub const Parser = struct {
                 indent(self.node_stack.items.len),
                 prefix,
                 @tagName(node_tag),
-                range.start,
-                range.end,
+                start,
+                end,
                 line(range.source),
             },
         );
+        for (tokens) |*token| {
+            std.debug.print(", {s}", .{tree.source[token.loc.start..token.loc.end]});
+        }
 
         if (zls.ast.isContainer(tree, node_idx)) {
             // children
