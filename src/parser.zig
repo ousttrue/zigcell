@@ -116,7 +116,7 @@ pub const Parser = struct {
         const range = SourceRange.init(tree, node_idx);
 
         const start = tree.firstToken(node_idx);
-        var end = zls.ast.lastToken(tree, node_idx);
+        var end = tree.lastToken(node_idx);
         if (end < self.tokens.items.len) {
             end += 1;
         }
