@@ -34,37 +34,90 @@ fn line(src: []const u8) []const u8 {
     return src[0..i];
 }
 
+pub const Node = struct {
+    const Self = @This();
+
+    parent: u32,
+    idx: u32,
+    token_start: u32,
+    token_last: u32,
+    tag: std.zig.Ast.Node.Tag,
+
+    pub fn init(parent: u32, tree: std.zig.Ast, idx: u32) Self {
+        const tags = tree.nodes.items(.tag);
+        const node_tag = tags[idx];
+        return Self{
+            .parent = parent,
+            .idx = idx,
+            .token_start = tree.firstToken(idx),
+            .token_last = tree.lastToken(idx),
+            .tag = node_tag,
+        };
+    }
+
+    pub fn child(self: Self, tree: std.zig.Ast, idx: u32) Self {
+        const tags = tree.nodes.items(.tag);
+        const node_tag = tags[idx];
+        return Self{
+            .parent = self.idx,
+            .idx = idx,
+            .token_start = tree.firstToken(idx),
+            .token_last = tree.lastToken(idx),
+            .tag = node_tag,
+        };
+    }
+
+    pub fn debugPrint(self: Self, level: usize) void {
+        std.debug.print(
+            "\n[{d:0>3}]{s}{s}: {}..{}=> ",
+            .{
+                self.idx,
+                indent(level),
+                @tagName(self.tag),
+                self.token_start,
+                self.token_last,
+            },
+        );
+    }
+};
+
+fn getAllTokens(allocator: std.mem.Allocator, source: [:0]const u8) std.ArrayList(std.zig.Token) {
+    var tokens = std.ArrayList(std.zig.Token).init(allocator);
+    var tokenizer: std.zig.Tokenizer = .{
+        .buffer = source,
+        .index = 0,
+        .pending_invalid_token = null,
+    };
+
+    while (true) {
+        const token = tokenizer.next();
+        if (token.tag == .eof) {
+            break;
+        }
+        tokens.append(token) catch unreachable;
+    }
+
+    return tokens;
+}
+
 pub const Parser = struct {
     const Self = @This();
 
     allocator: std.mem.Allocator,
     tree: std.zig.Ast,
-    node_stack: std.ArrayList(u32),
     tokens: std.ArrayList(std.zig.Token),
+    nodes: std.ArrayList(Node),
+    node_stack: std.ArrayList(u32),
 
     pub fn new(allocator: std.mem.Allocator, tree: std.zig.Ast) *Self {
         var self = allocator.create(Self) catch unreachable;
         self.* = Self{
             .allocator = allocator,
             .tree = tree,
+            .tokens = getAllTokens(allocator, tree.source),
+            .nodes = std.ArrayList(Node).init(allocator),
             .node_stack = std.ArrayList(u32).init(allocator),
-            .tokens = std.ArrayList(std.zig.Token).init(allocator),
         };
-
-        // For some tokens, re-tokenization is needed to find the end.
-        var tokenizer: std.zig.Tokenizer = .{
-            .buffer = tree.source,
-            .index = 0,
-            .pending_invalid_token = null,
-        };
-
-        while (true) {
-            const token = tokenizer.next();
-            if (token.tag == .eof) {
-                break;
-            }
-            self.tokens.append(token) catch unreachable;
-        }
 
         return self;
     }
@@ -83,70 +136,60 @@ pub const Parser = struct {
         errdefer tree.deinit(allocator);
         var self = Self.new(allocator, tree);
 
-        self.traverse(tree, 0, "");
+        for (tree.rootDecls()) |decl| {
+            self.traverse(Node.init(0, tree, decl));
+        }
 
         return self;
     }
 
-    fn traverse(self: *Self, tree: std.zig.Ast, node_idx: u32, prefix: []const u8) void {
-        self.node_stack.append(node_idx) catch unreachable;
-        defer _ = self.node_stack.pop();
-
-        const tags = tree.nodes.items(.tag);
-        const data = tree.nodes.items(.data);
-
-        const node_tag = tags[node_idx];
-
-        const start = tree.firstToken(node_idx);
-        var end = tree.lastToken(node_idx);
+    fn getTokens(self: Self, start: usize, last: usize) []const std.zig.Token {
+        var end = last;
         if (end < self.tokens.items.len) {
             end += 1;
         }
-        const tokens = self.tokens.items[start..end];
+        return self.tokens.items[start..end];
+    }
 
-        std.debug.print(
-            "\n[{d:0>3}]{s}{s}{s}: {}..{}=> ",
-            .{
-                node_idx,
-                indent(self.node_stack.items.len),
-                prefix,
-                @tagName(node_tag),
-                start,
-                end,
-            },
-        );
+    fn traverse(self: *Self, node: Node) void {
+        self.node_stack.append(node.idx) catch unreachable;
+        defer _ = self.node_stack.pop();
+
+        node.debugPrint(self.node_stack.items.len);
+        const tokens = self.getTokens(node.token_start, node.token_last);
         for (tokens) |*token, i| {
             if (i > 0) {
                 std.debug.print(", ", .{});
             }
-            std.debug.print("{s}", .{tree.source[token.loc.start..token.loc.end]});
+            std.debug.print("{s}", .{self.tree.source[token.loc.start..token.loc.end]});
         }
 
-        if (zls.ast.isContainer(tree, node_idx)) {
+        if (zls.ast.isContainer(self.tree, node.idx)) {
             // children
             var buf: [2]std.zig.Ast.Node.Index = undefined;
-            const ast_decls = zls.ast.declMembers(tree, node_idx, &buf);
+            const ast_decls = zls.ast.declMembers(self.tree, node.idx, &buf);
             for (ast_decls) |decl| {
-                self.traverse(tree, decl, "");
+                self.traverse(node.child(self.tree, decl));
             }
         } else {
             // detail
-            switch (node_tag) {
+            const data = self.tree.nodes.items(.data);
+            switch (node.tag) {
                 .simple_var_decl => {
-                    const var_decl = tree.simpleVarDecl(node_idx);
+                    const var_decl = self.tree.simpleVarDecl(node.idx);
                     if (var_decl.ast.type_node != 0) {
-                        self.traverse(tree, var_decl.ast.type_node, "[type_node]");
+                        self.traverse(node.child(self.tree, var_decl.ast.type_node));
                     }
                     if (var_decl.ast.init_node != 0) {
-                        self.traverse(tree, var_decl.ast.init_node, "[init_node]");
+                        self.traverse(node.child(self.tree, var_decl.ast.init_node));
                     }
                 },
                 .builtin_call_two => {
-                    const b_data = data[node_idx];
+                    const b_data = data[node.idx];
                     if (b_data.lhs != 0) {
-                        self.traverse(tree, b_data.lhs, "[lhs]");
+                        self.traverse(node.child(self.tree, b_data.lhs));
                         if (b_data.rhs != 0) {
-                            self.traverse(tree, b_data.rhs, "[rhs]");
+                            self.traverse(node.child(self.tree, b_data.rhs));
                         }
                     }
                 },
