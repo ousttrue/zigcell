@@ -24,23 +24,6 @@ pub fn getToken(tree: std.zig.Ast, token_index: std.zig.Ast.TokenIndex) std.zig.
     return token;
 }
 
-const SourceRange = struct {
-    const Self = @This();
-    start: usize,
-    end: usize,
-    source: []const u8,
-
-    fn init(tree: std.zig.Ast, node: std.zig.Ast.Node.Index) Self {
-        const start = getToken(tree, tree.firstToken(node));
-        const end = getToken(tree, zls.ast.lastToken(tree, node));
-        return Self{
-            .start = start.loc.start,
-            .end = end.loc.end,
-            .source = tree.source[start.loc.start..end.loc.end],
-        };
-    }
-};
-
 fn line(src: []const u8) []const u8 {
     var i: usize = 0;
     while (i < src.len) : (i += 1) {
@@ -113,7 +96,6 @@ pub const Parser = struct {
         const data = tree.nodes.items(.data);
 
         const node_tag = tags[node_idx];
-        const range = SourceRange.init(tree, node_idx);
 
         const start = tree.firstToken(node_idx);
         var end = tree.lastToken(node_idx);
@@ -123,7 +105,7 @@ pub const Parser = struct {
         const tokens = self.tokens.items[start..end];
 
         std.debug.print(
-            "\n[{d:0>3}]{s}{s}{s}: {}..{}=> {s}",
+            "\n[{d:0>3}]{s}{s}{s}: {}..{}=> ",
             .{
                 node_idx,
                 indent(self.node_stack.items.len),
@@ -131,11 +113,13 @@ pub const Parser = struct {
                 @tagName(node_tag),
                 start,
                 end,
-                line(range.source),
             },
         );
-        for (tokens) |*token| {
-            std.debug.print(", {s}", .{tree.source[token.loc.start..token.loc.end]});
+        for (tokens) |*token, i| {
+            if (i > 0) {
+                std.debug.print(", ", .{});
+            }
+            std.debug.print("{s}", .{tree.source[token.loc.start..token.loc.end]});
         }
 
         if (zls.ast.isContainer(tree, node_idx)) {
