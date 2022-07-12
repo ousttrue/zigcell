@@ -10,7 +10,8 @@ const ubo_buffer = @import("./ubo_buffer.zig");
 const CellVertex = layout.CellVertex;
 const Cursor = @import("./cursor.zig").Cursor;
 const CursorPosition = @import("./cursor_position.zig").CursorPosition;
-const Parser = @import("./parser.zig").Parser;
+const tokentree = @import("tokentree");
+const Parser = tokentree.Parser;
 
 const CELL_GLYPH_VS = @embedFile("./shaders/cell_glyph.vs");
 const CELL_GLYPH_FS = @embedFile("./shaders/cell_glyph.fs");
