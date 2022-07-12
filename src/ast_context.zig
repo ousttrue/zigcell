@@ -47,7 +47,7 @@ pub const AstContext = struct {
         self.allocator.destroy(self);
     }
 
-    fn getTokens(self: Self, start: usize, last: usize) []const std.zig.Token {
+    pub fn getTokens(self: Self, start: usize, last: usize) []const std.zig.Token {
         var end = last;
         if (end < self.tokens.items.len) {
             end += 1;

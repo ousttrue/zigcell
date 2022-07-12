@@ -36,6 +36,14 @@ pub const Node = struct {
         return Self.init(self.idx, self.context, idx);
     }
 
+    pub fn getTokens(self: Self) []const std.zig.Token {
+        return self.context.getTokens(self.token_start, self.token_last);
+    }
+
+    pub fn getTokenText(self: Self, token: std.zig.Token) []const u8 {
+        return self.context.text[token.loc.start..token.loc.end];
+    }
+
     pub fn debugPrint(self: Self, level: usize) void {
         std.debug.print(
             "\n[{d:0>3}]{s}{s}: {}..{}=> ",
@@ -47,5 +55,35 @@ pub const Node = struct {
                 self.token_last,
             },
         );
+
+        const tokens = self.getTokens();
+        const tree = self.context.tree;
+        switch (self.tag) {
+            .simple_var_decl => {
+                // const name: <type_node> = <init_node>;
+                const var_decl = tree.simpleVarDecl(self.idx);
+                // var next_token: u32 = 0;
+                var i: u32 = 0;
+                if (var_decl.ast.type_node != 0) {
+                    const type_node = self.child(var_decl.ast.type_node);
+                    const next_token = type_node.token_start - self.token_start;
+                    while (i < next_token) : (i += 1) {
+                        std.debug.print(" {s}", .{self.getTokenText(tokens[i])});
+                    }
+                    // <type_node>
+                    i = type_node.token_last + 1;
+                }
+                if (var_decl.ast.init_node != 0) {
+                    const init_node = self.child(var_decl.ast.init_node);
+                    const next_token = init_node.token_start - self.token_start;
+                    while (i < next_token) : (i += 1) {
+                        std.debug.print(" {s}", .{self.getTokenText(tokens[i])});
+                    }
+                    // <init_node>
+                    init_node.debugPrint(level + 1);
+                }
+            },
+            else => {},
+        }
     }
 };
