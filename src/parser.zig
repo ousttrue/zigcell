@@ -28,7 +28,7 @@ pub const Parser = struct {
         var self = Self.new(allocator, context);
 
         for (context.tree.rootDecls()) |decl| {
-            var node = Node.init(0, &context.tree, decl);
+            var node = Node.init(0, context, decl);
             node.traverse(0);
             self.nodes.append(node) catch unreachable;
         }

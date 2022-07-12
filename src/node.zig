@@ -1,5 +1,6 @@
 const std = @import("std");
 const zls = @import("zls");
+const AstContext = @import("./ast_context.zig").AstContext;
 
 const indent_buffer = " " ** 1024;
 
@@ -10,18 +11,19 @@ fn indent(level: usize) []const u8 {
 pub const Node = struct {
     const Self = @This();
 
-    tree: *std.zig.Ast,
+    context: *AstContext,
     parent: u32,
     idx: u32,
     token_start: u32,
     token_last: u32,
     tag: std.zig.Ast.Node.Tag,
 
-    pub fn init(parent: u32, tree: *std.zig.Ast, idx: u32) Self {
+    pub fn init(parent: u32, context: *AstContext, idx: u32) Self {
+        const tree = context.tree;
         const tags = tree.nodes.items(.tag);
         const node_tag = tags[idx];
         return Self{
-            .tree = tree,
+            .context = context,
             .parent = parent,
             .idx = idx,
             .token_start = tree.firstToken(idx),
@@ -31,16 +33,7 @@ pub const Node = struct {
     }
 
     pub fn child(self: *Self, idx: u32) Self {
-        const tags = self.tree.nodes.items(.tag);
-        const node_tag = tags[idx];
-        return Self{
-            .tree = self.tree,
-            .parent = self.idx,
-            .idx = idx,
-            .token_start = self.tree.firstToken(idx),
-            .token_last = self.tree.lastToken(idx),
-            .tag = node_tag,
-        };
+        return Self.init(self.idx, self.context, idx);
     }
 
     pub fn debugPrint(self: Self, level: usize) void {
@@ -57,6 +50,7 @@ pub const Node = struct {
     }
 
     pub fn traverse(self: *Self, level: u32) void {
+        const tree = self.context.tree;
         // self.node_stack.append(node.idx) catch unreachable;
         // defer _ = self.node_stack.pop();
 
@@ -70,12 +64,12 @@ pub const Node = struct {
         // }
 
         // detail
-        const data = self.tree.nodes.items(.data);
-        // const token_tags = self.tree.tokens.items(.tag);
+        const data = tree.nodes.items(.data);
+        // const token_tags = tree.tokens.items(.tag);
 
         switch (self.tag) {
             .simple_var_decl => {
-                const var_decl = self.tree.simpleVarDecl(self.idx);
+                const var_decl = tree.simpleVarDecl(self.idx);
                 if (var_decl.ast.type_node != 0) {
                     self.child(var_decl.ast.type_node).traverse(level + 1);
                 }
@@ -94,10 +88,10 @@ pub const Node = struct {
             },
             .fn_decl => {
                 var buf: [1]std.zig.Ast.Node.Index = undefined;
-                const func = zls.ast.fnProto(self.tree.*, self.idx, &buf).?;
+                const func = zls.ast.fnProto(tree, self.idx, &buf).?;
 
                 // params
-                var it = func.iterate(self.tree);
+                var it = func.iterate(&tree);
                 while (it.next()) |param| {
                     self.child(param.type_expr).traverse(level + 1);
                 }
