@@ -3,6 +3,7 @@ const zls = @import("zls");
 const token_tree = @import("./token_tree.zig");
 const Node = token_tree.Node;
 const AstContext = @import("./ast_context.zig").AstContext;
+const Decl = @import("./decl.zig").Decl;
 
 
 pub fn traverse(node: Node, level: u32) void {
@@ -55,13 +56,13 @@ pub const Parser = struct {
     const Self = @This();
 
     context: *AstContext,
-    nodes: std.ArrayList(Node),
+    decls: std.ArrayList(Decl),
 
     pub fn new(allocator: std.mem.Allocator, context: *AstContext) *Self {
         var self = allocator.create(Self) catch unreachable;
         self.* = Self{
             .context = context,
-            .nodes = std.ArrayList(Node).init(allocator),
+            .decls = std.ArrayList(Decl).init(allocator),
         };
         return self;
     }
@@ -77,11 +78,11 @@ pub const Parser = struct {
         var self = Self.new(allocator, context);
 
         for (context.tree.rootDecls()) |decl| {
-            var node = Node.init(0, context, decl);
+            var node = Decl.init(context, decl);
             // traverse(node, 0);
-            self.nodes.append(node) catch unreachable;
+            self.decls.append(node) catch unreachable;
 
-            node.debugPrint(0);
+            node.debugPrint();
             std.debug.print("\n", .{});
         }
 

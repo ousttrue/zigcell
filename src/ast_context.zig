@@ -47,11 +47,19 @@ pub const AstContext = struct {
         self.allocator.destroy(self);
     }
 
+    pub fn getTokenText(self: Self, token: std.zig.Token) []const u8 {
+        return self.text[token.loc.start..token.loc.end];
+    }
+
     pub fn getTokens(self: Self, start: usize, last: usize) []const std.zig.Token {
         var end = last;
         if (end < self.tokens.items.len) {
             end += 1;
         }
         return self.tokens.items[start..end];
+    }
+
+    pub fn getNodeTokens(self: Self, idx: u32) []const std.zig.Token {
+        return self.getTokens(self.tree.firstToken(idx), self.tree.lastToken(idx));
     }
 };

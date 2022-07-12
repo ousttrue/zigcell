@@ -40,10 +40,6 @@ pub const Node = struct {
         return self.context.getTokens(self.token_start, self.token_last);
     }
 
-    pub fn getTokenText(self: Self, token: std.zig.Token) []const u8 {
-        return self.context.text[token.loc.start..token.loc.end];
-    }
-
     pub fn debugPrint(self: Self, level: usize) void {
         std.debug.print(
             "\n[{d:0>3}]{s}{s}: {}..{}=> ",
