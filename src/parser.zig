@@ -37,16 +37,18 @@ fn line(src: []const u8) []const u8 {
 pub const Node = struct {
     const Self = @This();
 
+    tree: *std.zig.Ast,
     parent: u32,
     idx: u32,
     token_start: u32,
     token_last: u32,
     tag: std.zig.Ast.Node.Tag,
 
-    pub fn init(parent: u32, tree: std.zig.Ast, idx: u32) Self {
+    pub fn init(parent: u32, tree: *std.zig.Ast, idx: u32) Self {
         const tags = tree.nodes.items(.tag);
         const node_tag = tags[idx];
         return Self{
+            .tree = tree,
             .parent = parent,
             .idx = idx,
             .token_start = tree.firstToken(idx),
@@ -55,14 +57,15 @@ pub const Node = struct {
         };
     }
 
-    pub fn child(self: Self, tree: std.zig.Ast, idx: u32) Self {
-        const tags = tree.nodes.items(.tag);
+    pub fn child(self: *Self, idx: u32) Self {
+        const tags = self.tree.nodes.items(.tag);
         const node_tag = tags[idx];
         return Self{
+            .tree = self.tree,
             .parent = self.idx,
             .idx = idx,
-            .token_start = tree.firstToken(idx),
-            .token_last = tree.lastToken(idx),
+            .token_start = self.tree.firstToken(idx),
+            .token_last = self.tree.lastToken(idx),
             .tag = node_tag,
         };
     }
@@ -78,6 +81,66 @@ pub const Node = struct {
                 self.token_last,
             },
         );
+    }
+
+    fn traverse(self: *Self, level: u32) void {
+        // self.node_stack.append(node.idx) catch unreachable;
+        // defer _ = self.node_stack.pop();
+
+        self.debugPrint(level);
+        // const tokens = self.getTokens(node.token_start, node.token_last);
+        // for (tokens) |*token, i| {
+        //     if (i > 0) {
+        //         std.debug.print(", ", .{});
+        //     }
+        //     std.debug.print("{s}", .{self.tree.source[token.loc.start..token.loc.end]});
+        // }
+
+        // detail
+        const data = self.tree.nodes.items(.data);
+        // const token_tags = self.tree.tokens.items(.tag);
+
+        switch (self.tag) {
+            .simple_var_decl => {
+                const var_decl = self.tree.simpleVarDecl(self.idx);
+                if (var_decl.ast.type_node != 0) {
+                    self.child(var_decl.ast.type_node).traverse(level + 1);
+                }
+                if (var_decl.ast.init_node != 0) {
+                    self.child(var_decl.ast.init_node).traverse(level + 1);
+                }
+            },
+            .builtin_call_two => {
+                const b_data = data[self.idx];
+                if (b_data.lhs != 0) {
+                    self.child(b_data.lhs).traverse(level + 1);
+                    if (b_data.rhs != 0) {
+                        self.child(b_data.rhs).traverse(level + 1);
+                    }
+                }
+            },
+            .fn_decl => {
+                var buf: [1]std.zig.Ast.Node.Index = undefined;
+                const func = zls.ast.fnProto(self.tree.*, self.idx, &buf).?;
+
+                // params
+                var it = func.iterate(self.tree);
+                while (it.next()) |param| {
+                    self.child(param.type_expr).traverse(level + 1);
+                }
+
+                // return
+                if (data[self.idx].lhs != 0) {
+                    self.child(data[data[self.idx].lhs].rhs).traverse(level + 1);
+                }
+
+                // body
+                self.child(data[self.idx].rhs).traverse(level + 1);
+            },
+            else => {
+                // unknown
+            },
+        }
     }
 };
 
@@ -136,11 +199,16 @@ pub const Parser = struct {
         errdefer tree.deinit(allocator);
         var self = Self.new(allocator, tree);
 
-        for (tree.rootDecls()) |decl| {
-            self.traverse(Node.init(0, tree, decl));
-        }
+        self.traverse();
 
         return self;
+    }
+
+    fn traverse(self: *Self) void {
+        for (self.tree.rootDecls()) |decl| {
+            Node.init(0, &self.tree, decl).traverse(0);
+        }
+        std.debug.print("\n", .{});
     }
 
     fn getTokens(self: Self, start: usize, last: usize) []const std.zig.Token {
@@ -149,55 +217,5 @@ pub const Parser = struct {
             end += 1;
         }
         return self.tokens.items[start..end];
-    }
-
-    fn traverse(self: *Self, node: Node) void {
-        self.node_stack.append(node.idx) catch unreachable;
-        defer _ = self.node_stack.pop();
-
-        node.debugPrint(self.node_stack.items.len);
-        const tokens = self.getTokens(node.token_start, node.token_last);
-        for (tokens) |*token, i| {
-            if (i > 0) {
-                std.debug.print(", ", .{});
-            }
-            std.debug.print("{s}", .{self.tree.source[token.loc.start..token.loc.end]});
-        }
-
-        if (zls.ast.isContainer(self.tree, node.idx)) {
-            // children
-            var buf: [2]std.zig.Ast.Node.Index = undefined;
-            const ast_decls = zls.ast.declMembers(self.tree, node.idx, &buf);
-            for (ast_decls) |decl| {
-                self.traverse(node.child(self.tree, decl));
-            }
-        } else {
-            // detail
-            const data = self.tree.nodes.items(.data);
-            switch (node.tag) {
-                .simple_var_decl => {
-                    const var_decl = self.tree.simpleVarDecl(node.idx);
-                    if (var_decl.ast.type_node != 0) {
-                        self.traverse(node.child(self.tree, var_decl.ast.type_node));
-                    }
-                    if (var_decl.ast.init_node != 0) {
-                        self.traverse(node.child(self.tree, var_decl.ast.init_node));
-                    }
-                },
-                .builtin_call_two => {
-                    const b_data = data[node.idx];
-                    if (b_data.lhs != 0) {
-                        self.traverse(node.child(self.tree, b_data.lhs));
-                        if (b_data.rhs != 0) {
-                            self.traverse(node.child(self.tree, b_data.rhs));
-                        }
-                    }
-                },
-                .fn_decl => {},
-                else => {
-                    // unknown
-                },
-            }
-        }
     }
 };
