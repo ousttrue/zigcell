@@ -58,6 +58,7 @@ pub const Node = struct {
 
         const tokens = self.getTokens();
         const tree = self.context.tree;
+        const data = tree.nodes.items(.data);
         switch (self.tag) {
             .simple_var_decl => {
                 // const name: <type_node> = <init_node>;
@@ -81,6 +82,18 @@ pub const Node = struct {
                     }
                     // <init_node>
                     init_node.debugPrint(level + 1);
+                }
+            },
+            .builtin_call_two => {
+                // @import("some")
+                const b_data = data[self.idx];
+                if (b_data.lhs != 0) {
+                    const lhs = self.child(b_data.lhs);
+                    lhs.debugPrint(level + 1);
+                    if (b_data.rhs != 0) {
+                        const rhs = self.child(b_data.rhs);
+                        rhs.debugPrint(level + 1);
+                    }
                 }
             },
             else => {},
