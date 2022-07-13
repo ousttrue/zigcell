@@ -36,10 +36,9 @@ pub const AstContext = struct {
         return self;
     }
 
-    pub fn delete(self: Self) void {
+    pub fn delete(self: *Self) void {
         self.tokens.deinit();
-        self.tree.deinit();
-        self.allocator.free(self.text);
+        self.tree.deinit(self.allocator);
         self.allocator.destroy(self);
     }
 

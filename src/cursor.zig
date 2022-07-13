@@ -22,7 +22,9 @@ pub const Cursor = struct {
         var vbo = glo.Vbo.init();
         var vertices: [1]Vec3 = undefined;
         vbo.setVertices(Vec3, &vertices, true);
-        var vao = glo.Vao.init(vbo, shader.createVertexLayout(allocator), null);
+        const vertexLayout = shader.createVertexLayoutAllocate(allocator);
+        defer allocator.free(vertexLayout);
+        var vao = glo.Vao.init(vbo, vertexLayout, null);
 
         var self = allocator.create(Self) catch unreachable;
         self.* = Self{

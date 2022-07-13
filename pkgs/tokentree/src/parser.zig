@@ -55,20 +55,23 @@ pub fn traverse(node: Node, level: u32) void {
 pub const Parser = struct {
     const Self = @This();
 
+    allocator: std.mem.Allocator,
     context: *AstContext,
     decls: std.ArrayList(Decl),
 
     pub fn new(allocator: std.mem.Allocator, context: *AstContext) *Self {
         var self = allocator.create(Self) catch unreachable;
         self.* = Self{
+            .allocator = allocator,
             .context = context,
             .decls = std.ArrayList(Decl).init(allocator),
         };
         return self;
     }
 
-    pub fn delete(self: Self) void {
-        self.nodes.deinit();
+    pub fn delete(self: *Self) void {
+        self.decls.deinit();
+        self.context.delete();
         self.allocator.destroy(self);
     }
 

@@ -112,6 +112,7 @@ pub const LineLayout = struct {
     }
 
     pub fn delete(self: *Self) void {
+        self.lines.deinit();
         self.allocator.destroy(self);
     }
 

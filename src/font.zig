@@ -36,7 +36,7 @@ pub const Atlas = struct {
 
     // https://gist.github.com/vassvik/f442a4cc6127bc7967c583a12b148ac9
     pub fn loadFont(self: *Self, path: []const u8, font_size: f32, atlas_size: u32) !glo.Texture {
-        const ttf_buffer = try io.readAllBytes(self.allocator, path);
+        const ttf_buffer = try io.readAllBytesAllocate(self.allocator, path);
         defer self.allocator.free(ttf_buffer);
 
         var ranges = [_]stb.stbtt_pack_range{

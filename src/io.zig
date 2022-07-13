@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub fn readAllBytes(allocator: std.mem.Allocator, path: []const u8) ![:0]const u8 {
+pub fn readAllBytesAllocate(allocator: std.mem.Allocator, path: []const u8) ![:0]const u8 {
     var file = try std.fs.cwd().openFile(path, .{});
     defer file.close();
     const file_size = try file.getEndPos();

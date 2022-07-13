@@ -196,7 +196,7 @@ pub const Shader = struct {
         }
     }
 
-    pub fn createVertexLayout(self: *Self, allocator: std.mem.Allocator) []const VertexLayout {
+    pub fn createVertexLayoutAllocate(self: *Self, allocator: std.mem.Allocator) []const VertexLayout {
         _ = self;
         var count: gl.GLint = undefined;
         gl.getProgramiv(self.handle, gl.ACTIVE_ATTRIBUTES, &count);

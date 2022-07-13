@@ -81,13 +81,14 @@ pub const Screen = struct {
     pub fn new(allocator: std.mem.Allocator, font_size: u32) *Self {
         var shader = glo.Shader.load(allocator, CELL_GLYPH_VS, CELL_GLYPH_FS, CELL_GLYPH_GS) catch unreachable;
         var vbo = glo.Vbo.init();
-        var vao = glo.Vao.init(vbo, shader.createVertexLayout(allocator), null);
+        const vertexLayout = shader.createVertexLayoutAllocate(allocator);
+        defer allocator.free(vertexLayout);
+        var vao = glo.Vao.init(vbo, vertexLayout, null);
         var ubo_global = glo.Ubo(ubo_buffer.Global).init();
         var ubo_glyphs = glo.Ubo(ubo_buffer.Glyphs).init();
-        var cursor = Cursor.new(allocator);
 
         var self = allocator.create(Self) catch unreachable;
-        self.* = .{
+        self.* = Self{
             .allocator = allocator,
             .cell_width = font_size / 2,
             .cell_height = font_size,
@@ -97,7 +98,7 @@ pub const Screen = struct {
             .ubo_global = ubo_global,
             .ubo_glyphs = ubo_glyphs,
             .atlas = font.Atlas.new(allocator),
-            .cursor = cursor,
+            .cursor = Cursor.new(allocator),
             .layout = layout.LineLayout.new(allocator),
         };
 
@@ -110,17 +111,26 @@ pub const Screen = struct {
         if (self.document) |document| {
             document.delete();
         }
-        self.layout.delete();
+        if (self.parser) |parser| {
+            parser.delete();
+        }
         if (self.texture) |*texture| {
             texture.deinit();
         }
+        self.layout.delete();
+        self.cursor.delete();
         self.atlas.delete();
+        self.ubo_global.deinit();
+        self.ubo_glyphs.deinit();
+        self.vao.deinit();
+        self.vbo.deinit();
         self.shader.deinit();
         self.allocator.destroy(self);
     }
 
     pub fn open(self: *Self, path: []const u8) !void {
-        const bytes = try io.readAllBytes(self.allocator, path);
+        const bytes = try io.readAllBytesAllocate(self.allocator, path);
+        defer self.allocator.free(bytes);
         if (self.document) |document| {
             document.delete();
         }

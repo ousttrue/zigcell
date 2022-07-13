@@ -14,7 +14,7 @@ pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     // defer _ = gpa.detectLeaks();
-    defer  std.debug.assert(!gpa.deinit());
+    defer std.debug.assert(!gpa.deinit());
 
     // Initialize the library
     if (glfw.glfwInit() == 0)
@@ -54,6 +54,7 @@ pub fn main() anyerror!void {
 
     if (std.os.argv.len > 1) {
         const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
+        defer allocator.free(arg1);
         try screen.open(arg1);
     }
 
