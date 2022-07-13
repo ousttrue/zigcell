@@ -13,6 +13,8 @@ fn getProc(_: ?*glfw.GLFWwindow, name: [:0]const u8) ?*const anyopaque {
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
+    // defer _ = gpa.detectLeaks();
+    defer  std.debug.assert(!gpa.deinit());
 
     // Initialize the library
     if (glfw.glfwInit() == 0)

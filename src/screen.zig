@@ -12,6 +12,7 @@ const Cursor = @import("./cursor.zig").Cursor;
 const CursorPosition = @import("./cursor_position.zig").CursorPosition;
 const tokentree = @import("tokentree");
 const Parser = tokentree.Parser;
+const io = @import("./io.zig");
 
 const CELL_GLYPH_VS = @embedFile("./shaders/cell_glyph.vs");
 const CELL_GLYPH_FS = @embedFile("./shaders/cell_glyph.fs");
@@ -64,7 +65,7 @@ pub const Screen = struct {
     ubo_global: glo.Ubo(ubo_buffer.Global),
     ubo_glyphs: glo.Ubo(ubo_buffer.Glyphs),
 
-    document: ?Document = null,
+    document: ?*Document = null,
     document_gen: usize = 0,
     parser: ?*Parser = null,
 
@@ -106,6 +107,9 @@ pub const Screen = struct {
     }
 
     pub fn delete(self: *Self) void {
+        if (self.document) |document| {
+            document.delete();
+        }
         self.layout.delete();
         if (self.texture) |*texture| {
             texture.deinit();
@@ -116,10 +120,14 @@ pub const Screen = struct {
     }
 
     pub fn open(self: *Self, path: []const u8) !void {
-        self.document = Document.open(self.allocator, path);
+        const bytes = try io.readAllBytes(self.allocator, path);
+        if (self.document) |document| {
+            document.delete();
+        }
+        self.document = Document.new(self.allocator, bytes);
         self.document_gen += 1;
         if (self.document) |document| {
-            self.parser = try Parser.parse(self.allocator, document.buffer.items);
+            self.parser = try Parser.parse(self.allocator, document.utf8Slice());
         }
     }
 
@@ -138,7 +146,7 @@ pub const Screen = struct {
     }
 
     fn getDocumentBuffer(self: Self) ?[]const u16 {
-        return if (self.document) |document| document.buffer.items else null;
+        return if (self.document) |document| document.utf16Slice() else null;
     }
 
     pub fn render(self: *Self, mouse_input: imutil.MouseInput) void {

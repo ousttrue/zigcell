@@ -22,20 +22,16 @@ fn getAllTokens(allocator: std.mem.Allocator, source: [:0]const u8) std.ArrayLis
 pub const AstContext = struct {
     const Self = @This();
     allocator: std.mem.Allocator,
-    text: [:0]const u8,
     tree: std.zig.Ast,
     tokens: std.ArrayList(std.zig.Token),
 
-    pub fn new(allocator: std.mem.Allocator, src: []const u16) *Self {
-        const text = std.unicode.utf16leToUtf8AllocZ(allocator, src) catch unreachable;
-        const tree: std.zig.Ast = std.zig.parse(allocator, text) catch unreachable;
-
+    pub fn new(allocator: std.mem.Allocator, src: [:0]const u8) *Self {
+        const tree: std.zig.Ast = std.zig.parse(allocator, src) catch unreachable;
         var self = allocator.create(Self) catch unreachable;
         self.* = Self{
             .allocator = allocator,
-            .text = text,
             .tree = tree,
-            .tokens = getAllTokens(allocator, text),
+            .tokens = getAllTokens(allocator, tree.source),
         };
         return self;
     }
@@ -48,7 +44,7 @@ pub const AstContext = struct {
     }
 
     pub fn getTokenText(self: Self, token: std.zig.Token) []const u8 {
-        return self.text[token.loc.start..token.loc.end];
+        return self.tree.source[token.loc.start..token.loc.end];
     }
 
     pub fn getTokens(self: Self, start: usize, last: usize) []const std.zig.Token {

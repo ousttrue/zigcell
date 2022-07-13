@@ -1,42 +1,43 @@
 const std = @import("std");
-const util = @import("./util.zig");
 
+// Fixed sized buffer
 pub const Document = struct {
     const Self = @This();
 
-    buffer: std.ArrayList(u16),
+    allocator: std.mem.Allocator,
+    utf8: [65535]u8 = undefined,
+    utf8Length: usize = undefined,
+    utf16: [65535]u16 = undefined,
+    utf16Length: usize = undefined,
 
-    pub fn init(allocator: std.mem.Allocator) Self {
-        return Self{
-            .buffer = std.ArrayList(u16).init(allocator),
+    pub fn new(allocator: std.mem.Allocator, src: []const u8) *Self {
+        var self = allocator.create(Self) catch unreachable;
+
+        self.* = Self{
+            .allocator = allocator,
         };
+
+        // oopy utf8
+        std.mem.copy(u8, &self.utf8, src);
+        self.utf8Length = src.len;
+        self.utf8[self.utf8Length] = 0;
+
+        // copy utf16
+        self.utf16Length = std.unicode.utf8ToUtf16Le(&self.utf16, src) catch unreachable;
+        self.utf16[self.utf16Length] = 0;
+
+        return self;
     }
 
-    pub fn deinit(self: *Self) void {
-        self.buffer.deinit();
+    pub fn delete(self: *Self) void {
+        self.allocator.destroy(self);
     }
 
-    pub fn load(self: *Self, src: []const u8) !void {
-        try self.buffer.resize(src.len);
-        const next = try std.unicode.utf8ToUtf16Le(self.buffer.items, src);
-        try self.buffer.resize(next);
-        std.log.debug("{}\n", .{next});
+    pub fn utf8Slice(self: Self) [:0]const u8 {
+        return self.utf8[0..self.utf8Length :0];
     }
 
-    pub fn open(allocator: std.mem.Allocator, path: []const u8) ?Self {
-        if (util.readSource(allocator, path)) |src| {
-            defer allocator.free(src);
-            var self = Self.init(allocator);
-            errdefer self.deinit();
-            if (self.load(src)) {
-                return self;
-            } else |err| {
-                std.log.err("{s}\n", .{@errorName(err)});
-                return null;
-            }
-        } else |err| {
-            std.log.err("{s}\n", .{@errorName(err)});
-            return null;
-        }
+    pub fn utf16Slice(self: Self) [:0]const u16 {
+        return self.utf16[0..self.utf16Length :0];
     }
 };

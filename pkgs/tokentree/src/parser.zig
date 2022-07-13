@@ -72,7 +72,7 @@ pub const Parser = struct {
         self.allocator.destroy(self);
     }
 
-    pub fn parse(allocator: std.mem.Allocator, src: []const u16) !*Self {
+    pub fn parse(allocator: std.mem.Allocator, src: [:0]const u8) !*Self {
         const context = AstContext.new(allocator, src);
 
         var self = Self.new(allocator, context);
