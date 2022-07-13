@@ -155,10 +155,6 @@ pub const Screen = struct {
         self.ubo_global.buffer.descent = self.atlas.descents[0];
     }
 
-    fn getDocumentBuffer(self: Self) ?[]const u16 {
-        return if (self.document) |document| document.utf16Slice() else null;
-    }
-
     pub fn render(self: *Self, mouse_input: imutil.MouseInput) void {
 
         // process keyboard event
@@ -215,8 +211,12 @@ pub const Screen = struct {
 
         if (self.document_gen != self.layout_gen) {
             self.layout_gen = self.document_gen;
-            const draw_count = self.layout.layout(self.getDocumentBuffer(), self.atlas);
-            self.draw_count = draw_count;
+            if (self.document) |document| {
+                const draw_count = self.layout.layout(document.utf16Slice(), self.atlas);
+                self.draw_count = draw_count;
+            } else {
+                self.draw_count = 0;
+            }
             self.vbo.update(self.layout.cells, .{});
         }
 
