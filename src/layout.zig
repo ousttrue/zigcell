@@ -41,57 +41,59 @@ fn getLine(document: []const u16, current: usize) ?usize {
     i;
 }
 
-const LineReader = struct {
-    const Self = @This();
-    doc: []const u16,
-    pos: usize = 0,
+fn LineReader(comptime T: type) type {
+    return struct {
+        const Self = @This();
+        doc: []const T,
+        pos: usize = 0,
 
-    fn init(doc: []const u16) Self {
-        return Self{
-            .doc = doc,
-        };
-    }
-
-    fn getLine(self: *Self) ?[]const u16 {
-        if (self.pos >= self.doc.len) {
-            return null;
+        fn init(doc: []const T) Self {
+            return Self{
+                .doc = doc,
+            };
         }
-        const start = self.pos;
-        var i = start;
-        while (i < self.doc.len) : ({
-            i += 1;
-        }) {
-            if (self.doc[i] == '\n') {
-                i += 1;
-                break;
+
+        fn getLine(self: *Self) ?[]const T {
+            if (self.pos >= self.doc.len) {
+                return null;
             }
-        }
-        self.pos = i;
-
-        return self.doc[start..i];
-    }
-
-    fn getLineWithCols(self: *Self, cols: u32) ?[]const u16 {
-        if (self.pos >= self.doc.len) {
-            return null;
-        }
-        const start = self.pos;
-        var i = start;
-        var col: u32 = 0;
-        while (i < self.doc.len and col < cols) : ({
-            i += 1;
-            col += 1;
-        }) {
-            if (self.doc[i] == '\n') {
+            const start = self.pos;
+            var i = start;
+            while (i < self.doc.len) : ({
                 i += 1;
-                break;
+            }) {
+                if (self.doc[i] == '\n') {
+                    i += 1;
+                    break;
+                }
             }
-        }
-        self.pos = i;
+            self.pos = i;
 
-        return self.doc[start..i];
-    }
-};
+            return self.doc[start..i];
+        }
+
+        fn getLineWithCols(self: *Self, cols: u32) ?[]const T {
+            if (self.pos >= self.doc.len) {
+                return null;
+            }
+            const start = self.pos;
+            var i = start;
+            var col: u32 = 0;
+            while (i < self.doc.len and col < cols) : ({
+                i += 1;
+                col += 1;
+            }) {
+                if (self.doc[i] == '\n') {
+                    i += 1;
+                    break;
+                }
+            }
+            self.pos = i;
+
+            return self.doc[start..i];
+        }
+    };
+}
 
 pub const LineLayout = struct {
     const Self = @This();
@@ -116,14 +118,12 @@ pub const LineLayout = struct {
         self.allocator.destroy(self);
     }
 
-    pub fn layout(self: *Self, document: ?[]const u16, atlas: *font.Atlas) u32 {
+    pub fn layout(self: *Self, doc: []const u16, atlas: *font.Atlas) u32 {
         self.lines.resize(0) catch unreachable;
         self.cell_count = 0;
 
-        const doc = document orelse return 0;
-        var r = LineReader.init(doc);
+        var r = LineReader(u16).init(doc);
         var row: u32 = 0;
-        // each line
         while (true) : (row += 1) {
             var line = r.getLine() orelse break;
             const head = self.cell_count;
@@ -139,6 +139,34 @@ pub const LineLayout = struct {
         }
         return @intCast(u32, self.cell_count);
     }
+
+    // pub fn layoutTokens(self: *Self, doc: [:0]const u8, atlas: *font.Atlas) u32 {
+    //     var tokenizer: std.zig.Tokenizer = .{
+    //         .buffer = doc,
+    //         .index = 0,
+    //         .pending_invalid_token = null,
+    //     };
+
+    //     var token = tokenizer.next();
+    //     _ = token;
+
+    //     var r = LineReader(u8).init(doc);
+    //     var row: u32 = 0;
+    //     while (true) : (row += 1) {
+    //         var line = r.getLine() orelse break;
+    //         const head = self.cell_count;
+    //         for (line) |c, col| {
+    //             self.cells[self.cell_count] = .{
+    //                 .col = @intToFloat(f32, col),
+    //                 .row = @intToFloat(f32, row),
+    //                 .glyph = @intToFloat(f32, atlas.glyphIndexFromCodePoint(c)),
+    //             };
+    //             self.cell_count += 1;
+    //         }
+    //         self.lines.append(self.cells[head..self.cell_count]) catch unreachable;
+    //     }
+    //     return @intCast(u32, self.cell_count);
+    // }
 
     pub fn moveCursor(self: *Self, move: CursorPosition) void {
         if (self.lines.items.len == 0) {

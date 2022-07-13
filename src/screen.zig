@@ -213,6 +213,7 @@ pub const Screen = struct {
             self.layout_gen = self.document_gen;
             if (self.document) |document| {
                 const draw_count = self.layout.layout(document.utf16Slice(), self.atlas);
+                // const draw_count = self.layout.layoutTokens(document.utf8Slice(), self.atlas);
                 self.draw_count = draw_count;
             } else {
                 self.draw_count = 0;
