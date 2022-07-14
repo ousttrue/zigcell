@@ -12,19 +12,17 @@ pub const Node = struct {
     const Self = @This();
 
     context: *AstContext,
-    parent: u32,
     idx: u32,
     token_start: u32,
     token_last: u32,
     tag: std.zig.Ast.Node.Tag,
 
-    pub fn init(parent: u32, context: *AstContext, idx: u32) Self {
+    pub fn init(context: *AstContext, idx: u32) Self {
         const tree = context.tree;
         const tags = tree.nodes.items(.tag);
         const node_tag = tags[idx];
         return Self{
             .context = context,
-            .parent = parent,
             .idx = idx,
             .token_start = tree.firstToken(idx),
             .token_last = tree.lastToken(idx),
@@ -38,6 +36,10 @@ pub const Node = struct {
 
     pub fn getTokens(self: Self) []const std.zig.Token {
         return self.context.getTokens(self.token_start, self.token_last);
+    }
+
+    pub fn containsToken(self: Self, token_index: usize) bool {
+        return self.token_start <= token_index and token_index <= self.token_last;
     }
 
     pub fn debugPrint(self: Self, level: usize) void {
@@ -65,7 +67,7 @@ pub const Node = struct {
                     const type_node = self.child(var_decl.ast.type_node);
                     const next_token = type_node.token_start - self.token_start;
                     while (i < next_token) : (i += 1) {
-                        std.debug.print(" {s}", .{self.getTokenText(tokens[i])});
+                        std.debug.print(" {s}", .{self.context.getTokenText(tokens[i])});
                     }
                     // <type_node>
                     i = type_node.token_last + 1;
@@ -74,7 +76,7 @@ pub const Node = struct {
                     const init_node = self.child(var_decl.ast.init_node);
                     const next_token = init_node.token_start - self.token_start;
                     while (i < next_token) : (i += 1) {
-                        std.debug.print(" {s}", .{self.getTokenText(tokens[i])});
+                        std.debug.print(" {s}", .{self.context.getTokenText(tokens[i])});
                     }
                     // <init_node>
                     init_node.debugPrint(level + 1);

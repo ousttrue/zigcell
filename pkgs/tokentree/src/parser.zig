@@ -4,49 +4,61 @@ const token_tree = @import("./token_tree.zig");
 const Node = token_tree.Node;
 const AstContext = @import("./ast_context.zig").AstContext;
 
-pub fn traverse(node: Node, level: u32) void {
-    const tree = node.context.tree;
+pub fn getChildren(tree: std.zig.Ast, idx: u32) []const u32 {
+    const tag = tree.nodes.items(.tag);
     const data = tree.nodes.items(.data);
-    switch (node.tag) {
-        .simple_var_decl => {
-            const var_decl = tree.simpleVarDecl(node.idx);
+    var children: [2]u32 = undefined;
+    var count: u32 = 0;
+
+    return switch (tag[idx]) {
+        .root => tree.rootDecls(),
+        .simple_var_decl => blk: {
+            const var_decl = tree.simpleVarDecl(idx);
             if (var_decl.ast.type_node != 0) {
-                traverse(node.child(var_decl.ast.type_node), level + 1);
+                children[count] = var_decl.ast.type_node;
+                count += 1;
             }
             if (var_decl.ast.init_node != 0) {
-                traverse(node.child(var_decl.ast.init_node), level + 1);
+                children[count] = var_decl.ast.init_node;
+                count += 1;
             }
+            break :blk children[0..count];
         },
-        .builtin_call_two => {
-            const b_data = data[node.idx];
+        .builtin_call_two => blk: {
+            const b_data = data[idx];
             if (b_data.lhs != 0) {
-                traverse(node.child(b_data.lhs), level + 1);
-                if (b_data.rhs != 0) {
-                    traverse(node.child(b_data.rhs), level + 1);
-                }
+                children[count] = b_data.lhs;
+                count += 1;
             }
-        },
-        .fn_decl => {
-            var buf: [1]std.zig.Ast.Node.Index = undefined;
-            const func = zls.ast.fnProto(tree, node.idx, &buf).?;
-
-            // params
-            var it = func.iterate(&tree);
-            while (it.next()) |param| {
-                traverse(node.child(param.type_expr), level + 1);
+            if (b_data.rhs != 0) {
+                children[count] = b_data.lhs;
+                count += 1;
             }
-
-            // return
-            if (data[node.idx].lhs != 0) {
-                traverse(node.child(data[data[node.idx].lhs].rhs), level + 1);
-            }
-
-            // body
-            traverse(node.child(data[node.idx].rhs), level + 1);
+            break :blk children[0..count];
         },
-        else => {
-            // unknown
-        },
+        else => &.{},
+    };
+}
+
+pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
+    const tree = context.tree;
+    const tag = tree.nodes.items(.tag);
+    const idx = stack.items[stack.items.len - 1];
+
+    for (stack.items) |x, i| {
+        if (i > 0) {
+            std.debug.print(", ", .{});
+        }
+        std.debug.print("{}", .{x});
+    }
+    const node = Node.init(context, idx);
+    std.debug.print("=>{s} {}..{}", .{ @tagName(tag[idx]), node.token_start, node.token_last });
+    std.debug.print("\n", .{});
+
+    for (getChildren(context.tree, idx)) |child| {
+        stack.append(child) catch unreachable;
+        traverse(context, stack);
+        _ = stack.pop();
     }
 }
 
@@ -75,9 +87,11 @@ pub const Parser = struct {
     pub fn parse(allocator: std.mem.Allocator, src: [:0]const u8) !*Self {
         const context = AstContext.new(allocator, src);
         var self = Self.new(allocator, context);
-        for (context.tree.rootDecls()) |decl| {
-            _ = decl;
-        }
+
+        var stack = std.ArrayList(u32).init(allocator);
+        defer stack.deinit();
+        try stack.append(0);
+        traverse(context, &stack);
         return self;
     }
 

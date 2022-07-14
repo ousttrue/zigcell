@@ -43,7 +43,7 @@ pub fn build(b: *std.build.Builder) void {
     const imutil_pkg = std.build.Pkg{
         .name = "imutil",
         .path = std.build.FileSource{ .path = "pkgs/imutil/src/main.zig" },
-        .dependencies = &.{gl_pkg, glo_pkg, imgui_pkg},
+        .dependencies = &.{ gl_pkg, glo_pkg, imgui_pkg },
     };
     exe.addPackage(imutil_pkg);
 
@@ -57,7 +57,7 @@ pub fn build(b: *std.build.Builder) void {
     const tokentree_pkg = std.build.Pkg{
         .name = "tokentree",
         .path = std.build.FileSource{ .path = "pkgs/tokentree/src/main.zig" },
-        .dependencies = &.{},
+        .dependencies = &.{zls_pkg},
     };
     exe.addPackage(tokentree_pkg);
 
