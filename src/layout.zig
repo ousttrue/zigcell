@@ -104,9 +104,12 @@ pub const LineLayout = struct {
 
     allocator: std.mem.Allocator,
     cells: [65536]CellVertex = undefined,
+    cell_byte_positions: [65535]usize = undefined,
     cell_count: usize = 0,
+
     lines: std.ArrayList([]CellVertex),
     cursor_position: CursorPosition = .{},
+    cursor_byte_pos: usize = 0,
 
     pub fn new(allocator: std.mem.Allocator) *Self {
         var self = allocator.create(Self) catch unreachable;
@@ -166,8 +169,6 @@ pub const LineLayout = struct {
                     token = tokenizer.next();
                 }
 
-                bytePos += slice.len;
-
                 const c = switch (slice.len) {
                     1 => std.unicode.utf8Decode(slice),
                     2 => std.unicode.utf8Decode2(slice),
@@ -181,12 +182,26 @@ pub const LineLayout = struct {
                     .glyph = @intToFloat(f32, atlas.glyphIndexFromCodePoint(@intCast(u16, c))),
                     .color = getTokenColor(bytePos, token),
                 };
+                self.cell_byte_positions[self.cell_count] = bytePos;
                 self.cell_count += 1;
+                bytePos += slice.len;
             }
 
             self.lines.append(self.cells[head..self.cell_count]) catch unreachable;
         }
         return @intCast(u32, self.cell_count);
+    }
+
+    pub fn getCellIndex(self: Self, cursor: CursorPosition) ?usize {
+        for (self.cells) |*cell, i| {
+            if (i >= self.cell_count) {
+                break;
+            }
+            if (@floatToInt(i32, cell.row) == cursor.row and @floatToInt(i32, cell.col) == cursor.col) {
+                return i;
+            }
+        }
+        return null;
     }
 
     pub fn moveCursor(self: *Self, move: CursorPosition) void {
@@ -207,10 +222,14 @@ pub const LineLayout = struct {
             self.cursor_position.row = @intCast(i32, self.lines.items.len - 1);
         }
 
-        // var line = self.lines.items[@intCast(usize, self.cursor_position.row)];
         self.cursor_position.col += move.col;
         if (self.cursor_position.col < 0) {
             self.cursor_position.col = 0;
+        }
+
+        if (self.getCellIndex(self.cursor_position)) |i| {
+            self.cursor_byte_pos = self.cell_byte_positions[i];
+            std.debug.print("cursor: {} => cell index: {} => utf8 byte: {}\n", .{ self.cursor_position, i, self.cursor_byte_pos });
         }
     }
 };
