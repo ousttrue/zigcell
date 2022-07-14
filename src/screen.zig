@@ -78,6 +78,8 @@ pub const Screen = struct {
     layout_gen: usize = 0,
     scroll_top_left: CursorPosition = .{},
 
+    clear_color: [4]f32 = .{ 0, 0, 0, 1 },
+
     pub fn new(allocator: std.mem.Allocator, font_size: u32) *Self {
         var shader = glo.Shader.load(allocator, CELL_GLYPH_VS, CELL_GLYPH_FS, CELL_GLYPH_GS) catch unreachable;
         var vbo = glo.Vbo.init();
@@ -175,7 +177,7 @@ pub const Screen = struct {
 
         // clear
         gl.viewport(0, 0, @intCast(c_int, mouse_input.width), @intCast(c_int, mouse_input.height));
-        gl.clearColor(0.3, 0.6, 0.3, 1.0);
+        gl.clearColor(self.clear_color[0], self.clear_color[1], self.clear_color[2], self.clear_color[3]);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         // ubo_global
@@ -212,8 +214,8 @@ pub const Screen = struct {
         if (self.document_gen != self.layout_gen) {
             self.layout_gen = self.document_gen;
             if (self.document) |document| {
-                const draw_count = self.layout.layout(document.utf16Slice(), self.atlas);
-                // const draw_count = self.layout.layoutTokens(document.utf8Slice(), self.atlas);
+                // const draw_count = self.layout.layout(document.utf16Slice(), self.atlas);
+                const draw_count = self.layout.layoutTokens(document.utf8Slice(), self.atlas);
                 self.draw_count = draw_count;
             } else {
                 self.draw_count = 0;

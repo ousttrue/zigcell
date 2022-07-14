@@ -13,6 +13,7 @@ plan
 
 ## Cursor
 
-* document position. index of u16 document.
-* lined position. wrapped line and column.
 * cell position. scroll viewport.
+* cell index
+* utf16(code point) index
+* utf8 bytePos

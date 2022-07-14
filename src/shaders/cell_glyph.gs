@@ -19,7 +19,10 @@ struct Glyph {
 
 layout(std140, binding = 1) uniform Glyphs { Glyph glyphs[128]; };
 
-out vec2 TexCoords;
+in vData { vec3 color; }
+vertices[];
+out vec2 g_TexCoords;
+out vec3 g_Color;
 
 vec2 pixelToUv(float x, float y) {
   return vec2((x + 0.5) / global.atlasSize.x, (y + 0.5) / global.atlasSize.y);
@@ -45,25 +48,29 @@ void main() {
 
   // 0
   gl_Position = global.projection * vec4(topLeft + glyph.offset.xy, 0, 1);
-  TexCoords = pixelToUv(l, t);
+  g_TexCoords = pixelToUv(l, t);
+  g_Color = vertices[0].color;
   EmitVertex();
 
   // 1
   gl_Position = global.projection *
                 vec4(topLeft + glyph.offset.xy + vec2(0, b - t), 0.0, 1);
-  TexCoords = pixelToUv(l, b);
+  g_TexCoords = pixelToUv(l, b);
+  g_Color = vertices[0].color;
   EmitVertex();
 
   // 2
   gl_Position = global.projection *
                 vec4(topLeft + glyph.offset.xy + vec2(r - l, 0), 0.0, 1);
-  TexCoords = pixelToUv(r, t);
+  g_TexCoords = pixelToUv(r, t);
+  g_Color = vertices[0].color;
   EmitVertex();
 
   // 3
   gl_Position = global.projection *
                 vec4(topLeft + glyph.offset.xy + vec2(r - l, b - t), 0.0, 1);
-  TexCoords = pixelToUv(r, b);
+  g_TexCoords = pixelToUv(r, b);
+  g_Color = vertices[0].color;
   EmitVertex();
 
   EndPrimitive();

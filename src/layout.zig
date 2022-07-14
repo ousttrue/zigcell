@@ -1,11 +1,15 @@
 const std = @import("std");
 const font = @import("./font.zig");
 const CursorPosition = @import("./cursor_position.zig").CursorPosition;
+const Utf8Iterator = @import("./Utf8Iterator.zig");
+const tag_color = @import("./tag_color.zig");
+const getTokenColor = tag_color.getTokenColor;
 
 pub const CellVertex = struct {
     col: f32,
     row: f32,
     glyph: f32,
+    color: [3]f32,
 };
 
 fn fillCells(rows: u32, cols: u32, cells: []CellVertex) u32 {
@@ -140,33 +144,50 @@ pub const LineLayout = struct {
         return @intCast(u32, self.cell_count);
     }
 
-    // pub fn layoutTokens(self: *Self, doc: [:0]const u8, atlas: *font.Atlas) u32 {
-    //     var tokenizer: std.zig.Tokenizer = .{
-    //         .buffer = doc,
-    //         .index = 0,
-    //         .pending_invalid_token = null,
-    //     };
+    pub fn layoutTokens(self: *Self, doc: [:0]const u8, atlas: *font.Atlas) u32 {
+        var tokenizer: std.zig.Tokenizer = .{
+            .buffer = doc,
+            .index = 0,
+            .pending_invalid_token = null,
+        };
 
-    //     var token = tokenizer.next();
-    //     _ = token;
+        var token = tokenizer.next();
+        var r = LineReader(u8).init(doc);
+        var row: u32 = 0;
+        var bytePos: usize = 0;
+        while (true) : (row += 1) {
+            var line = r.getLine() orelse break;
+            const head = self.cell_count;
 
-    //     var r = LineReader(u8).init(doc);
-    //     var row: u32 = 0;
-    //     while (true) : (row += 1) {
-    //         var line = r.getLine() orelse break;
-    //         const head = self.cell_count;
-    //         for (line) |c, col| {
-    //             self.cells[self.cell_count] = .{
-    //                 .col = @intToFloat(f32, col),
-    //                 .row = @intToFloat(f32, row),
-    //                 .glyph = @intToFloat(f32, atlas.glyphIndexFromCodePoint(c)),
-    //             };
-    //             self.cell_count += 1;
-    //         }
-    //         self.lines.append(self.cells[head..self.cell_count]) catch unreachable;
-    //     }
-    //     return @intCast(u32, self.cell_count);
-    // }
+            var it = Utf8Iterator.init(line);
+            var col: u32 = 0;
+            while (it.next()) |slice| : (col += 1) {
+                while (token.loc.end <= bytePos) {
+                    token = tokenizer.next();
+                }
+
+                bytePos += slice.len;
+
+                const c = switch (slice.len) {
+                    1 => std.unicode.utf8Decode(slice),
+                    2 => std.unicode.utf8Decode2(slice),
+                    3 => std.unicode.utf8Decode3(slice),
+                    4 => std.unicode.utf8Decode4(slice),
+                    else => unreachable,
+                } catch unreachable;
+                self.cells[self.cell_count] = .{
+                    .col = @intToFloat(f32, col),
+                    .row = @intToFloat(f32, row),
+                    .glyph = @intToFloat(f32, atlas.glyphIndexFromCodePoint(@intCast(u16, c))),
+                    .color = getTokenColor(bytePos, token),
+                };
+                self.cell_count += 1;
+            }
+
+            self.lines.append(self.cells[head..self.cell_count]) catch unreachable;
+        }
+        return @intCast(u32, self.cell_count);
+    }
 
     pub fn moveCursor(self: *Self, move: CursorPosition) void {
         if (self.lines.items.len == 0) {
