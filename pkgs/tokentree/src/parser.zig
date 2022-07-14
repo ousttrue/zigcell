@@ -3,8 +3,6 @@ const zls = @import("zls");
 const token_tree = @import("./token_tree.zig");
 const Node = token_tree.Node;
 const AstContext = @import("./ast_context.zig").AstContext;
-const Decl = @import("./decl.zig").Decl;
-
 
 pub fn traverse(node: Node, level: u32) void {
     const tree = node.context.tree;
@@ -52,43 +50,40 @@ pub fn traverse(node: Node, level: u32) void {
     }
 }
 
+pub const AstPath = struct {};
+
 pub const Parser = struct {
     const Self = @This();
 
     allocator: std.mem.Allocator,
     context: *AstContext,
-    decls: std.ArrayList(Decl),
 
     pub fn new(allocator: std.mem.Allocator, context: *AstContext) *Self {
         var self = allocator.create(Self) catch unreachable;
         self.* = Self{
             .allocator = allocator,
             .context = context,
-            .decls = std.ArrayList(Decl).init(allocator),
         };
         return self;
     }
 
     pub fn delete(self: *Self) void {
-        self.decls.deinit();
         self.context.delete();
         self.allocator.destroy(self);
     }
 
     pub fn parse(allocator: std.mem.Allocator, src: [:0]const u8) !*Self {
         const context = AstContext.new(allocator, src);
-
         var self = Self.new(allocator, context);
-
         for (context.tree.rootDecls()) |decl| {
-            var node = Decl.init(context, decl);
-            // traverse(node, 0);
-            self.decls.append(node) catch unreachable;
-
-            node.debugPrint();
-            std.debug.print("\n", .{});
+            _ = decl;
         }
-
         return self;
+    }
+
+    pub fn getAstPath(self: Self, token_index: usize) ?AstPath {
+        _ = self;
+        _ = token_index;
+        return null;
     }
 };

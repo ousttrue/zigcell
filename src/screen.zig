@@ -53,6 +53,29 @@ pub fn screenToDevice(
     return new_left_top;
 }
 
+var MOVES: [4]CursorPosition = undefined;
+
+pub fn getCursorMove() []CursorPosition {
+    var i: usize = 0;
+    if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._DownArrow), .{})) {
+        MOVES[i] = .{ .col = 0, .row = 1 };
+        i += 1;
+    }
+    if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._UpArrow), .{})) {
+        MOVES[i] = .{ .col = 0, .row = -1 };
+        i += 1;
+    }
+    if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._RightArrow), .{})) {
+        MOVES[i] = .{ .col = 1, .row = 0 };
+        i += 1;
+    }
+    if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._LeftArrow), .{})) {
+        MOVES[i] = .{ .col = -1, .row = 0 };
+        i += 1;
+    }
+    return MOVES[0..i];
+}
+
 pub const Screen = struct {
     const Self = @This();
 
@@ -161,17 +184,14 @@ pub const Screen = struct {
 
         // process keyboard event
         if (imgui.IsItemFocused()) {
-            if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._DownArrow), .{})) {
-                self.layout.moveCursor(.{ .col = 0, .row = 1 });
-            }
-            if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._UpArrow), .{})) {
-                self.layout.moveCursor(.{ .col = 0, .row = -1 });
-            }
-            if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._RightArrow), .{})) {
-                self.layout.moveCursor(.{ .col = 1, .row = 0 });
-            }
-            if (imgui.IsKeyPressed(@enumToInt(imgui.ImGuiKey._LeftArrow), .{})) {
-                self.layout.moveCursor(.{ .col = -1, .row = 0 });
+            for (getCursorMove()) |move| {
+                if (self.layout.moveCursor(move)) |token_index| {
+                    if (self.parser) |parser| {
+                        if (parser.getAstPath(token_index)) |path| {
+                            std.debug.print("{}\n", .{path});
+                        }
+                    }
+                }
             }
         }
 

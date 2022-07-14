@@ -113,6 +113,7 @@ pub const LineLayout = struct {
     lines: std.ArrayList([]CellVertex),
     cursor_position: CursorPosition = .{},
     cursor_byte_pos: usize = 0,
+    cursor_token_index: ?usize = null,
 
     pub fn new(allocator: std.mem.Allocator) *Self {
         var self = allocator.create(Self) catch unreachable;
@@ -203,6 +204,9 @@ pub const LineLayout = struct {
 
             self.lines.append(self.cells[head..self.cell_count]) catch unreachable;
         }
+
+        _ = self.updateCursorGetActiveTokenIndex();
+
         return @intCast(u32, self.cell_count);
     }
 
@@ -218,11 +222,12 @@ pub const LineLayout = struct {
         return null;
     }
 
-    pub fn moveCursor(self: *Self, move: CursorPosition) void {
+    pub fn moveCursor(self: *Self, move: CursorPosition) ?usize {
         if (self.lines.items.len == 0) {
+            // no document
             self.cursor_position.row = 0;
             self.cursor_position.col = 0;
-            return;
+            return null;
         }
 
         std.debug.print("[moveCursor]{}\n", .{move});
@@ -242,17 +247,23 @@ pub const LineLayout = struct {
             self.cursor_position.col = 0;
         }
 
+        return self.updateCursorGetActiveTokenIndex();
+    }
+
+    /// return token index
+    pub fn updateCursorGetActiveTokenIndex(self: *Self) ?usize {
         if (self.getCellIndex(self.cursor_position)) |i| {
             self.cursor_byte_pos = self.cell_byte_positions[i];
             std.debug.print("cursor: {} => cell index: {} => utf8 byte: {}\n", .{ self.cursor_position, i, self.cursor_byte_pos });
-            var j: usize = 0;
-            while (j < self.token_count) : (j += 1) {
-                if (isInToken(self.cursor_byte_pos, self.tokens[j])) {
-                    std.debug.print("token: {s}\n", .{@tagName(self.tokens[j].tag)});
-                    return;
+            var token_index: usize = 0;
+            while (token_index < self.token_count) : (token_index += 1) {
+                if (isInToken(self.cursor_byte_pos, self.tokens[token_index])) {
+                    std.debug.print("token: {s}\n", .{@tagName(self.tokens[token_index].tag)});
+                    return token_index;
                 }
             }
             std.debug.print("no token\n", .{});
         }
+        return null;
     }
 };
