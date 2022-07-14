@@ -4,6 +4,7 @@ const CursorPosition = @import("./cursor_position.zig").CursorPosition;
 const Utf8Iterator = @import("./Utf8Iterator.zig");
 const tag_color = @import("./tag_color.zig");
 const getTokenColor = tag_color.getTokenColor;
+const isInToken = tag_color.isInToken;
 
 pub const CellVertex = struct {
     col: f32,
@@ -224,6 +225,7 @@ pub const LineLayout = struct {
             return;
         }
 
+        std.debug.print("[moveCursor]{}\n", .{move});
         self.cursor_position.row += move.row;
         if (self.cursor_position.row >= self.lines.items.len) {
             self.cursor_position.row = @intCast(i32, self.lines.items.len - 1);
@@ -243,6 +245,14 @@ pub const LineLayout = struct {
         if (self.getCellIndex(self.cursor_position)) |i| {
             self.cursor_byte_pos = self.cell_byte_positions[i];
             std.debug.print("cursor: {} => cell index: {} => utf8 byte: {}\n", .{ self.cursor_position, i, self.cursor_byte_pos });
+            var j: usize = 0;
+            while (j < self.token_count) : (j += 1) {
+                if (isInToken(self.cursor_byte_pos, self.tokens[j])) {
+                    std.debug.print("token: {s}\n", .{@tagName(self.tokens[j].tag)});
+                    return;
+                }
+            }
+            std.debug.print("no token\n", .{});
         }
     }
 };

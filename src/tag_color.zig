@@ -8,8 +8,8 @@ pub const CYAN = [3]f32{ 0, 1, 1 };
 pub const MAGENTA = [3]f32{ 1, 0, 1 };
 pub const YELLOW = [3]f32{ 1, 1, 0 };
 
-fn isInToken(pos: usize, token: std.zig.Token) bool {
-    return pos >= token.loc.start and pos <= token.loc.end;
+pub fn isInToken(pos: usize, token: std.zig.Token) bool {
+    return pos >= token.loc.start and pos <= token.loc.end-1;
 }
 
 pub fn tagColor(tag: std.zig.Token.Tag) [3]f32 {
