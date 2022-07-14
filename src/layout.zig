@@ -106,6 +106,8 @@ pub const LineLayout = struct {
     cells: [65536]CellVertex = undefined,
     cell_byte_positions: [65535]usize = undefined,
     cell_count: usize = 0,
+    tokens: [65535]std.zig.Token = undefined,
+    token_count: usize = 0,
 
     lines: std.ArrayList([]CellVertex),
     cursor_position: CursorPosition = .{},
@@ -153,11 +155,20 @@ pub const LineLayout = struct {
             .index = 0,
             .pending_invalid_token = null,
         };
+        var i: usize = 0;
+        while (true) : (i += 1) {
+            const token = tokenizer.next();
+            if (token.tag == .eof) {
+                break;
+            }
+            self.tokens[i] = token;
+        }
+        self.token_count = i;
 
-        var token = tokenizer.next();
         var r = LineReader(u8).init(doc);
         var row: u32 = 0;
         var bytePos: usize = 0;
+        i = 0;
         while (true) : (row += 1) {
             var line = r.getLine() orelse break;
             const head = self.cell_count;
@@ -165,8 +176,10 @@ pub const LineLayout = struct {
             var it = Utf8Iterator.init(line);
             var col: u32 = 0;
             while (it.next()) |slice| : (col += 1) {
-                while (token.loc.end <= bytePos) {
-                    token = tokenizer.next();
+                while (i < self.token_count) : (i += 1) {
+                    if (bytePos < self.tokens[i].loc.end) {
+                        break;
+                    }
                 }
 
                 const c = switch (slice.len) {
@@ -180,7 +193,7 @@ pub const LineLayout = struct {
                     .col = @intToFloat(f32, col),
                     .row = @intToFloat(f32, row),
                     .glyph = @intToFloat(f32, atlas.glyphIndexFromCodePoint(@intCast(u16, c))),
-                    .color = getTokenColor(bytePos, token),
+                    .color = getTokenColor(bytePos, self.tokens[i]),
                 };
                 self.cell_byte_positions[self.cell_count] = bytePos;
                 self.cell_count += 1;
