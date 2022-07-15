@@ -49,12 +49,14 @@ pub fn main() anyerror!void {
     try app.docks.append(imutil.Dock.create(fbo_dock, "fbo"));
 
     // cursor dock
-    var cursor_dock = CursorDock.new(allocator, screen);
+    var cursor_dock = CursorDock.new(allocator, screen.layout);
     defer cursor_dock.delete();
     try app.docks.append(imutil.Dock.create(cursor_dock, "cursor"));
 
     // ast tree dock
-    // var ast_tree_dock = AstTreeDock.new(allocator, screen)
+    var ast_tree_dock = AstTreeDock.new(allocator, screen.layout);
+    defer ast_tree_dock.delete();
+    try app.docks.append(imutil.Dock.create(ast_tree_dock, "ast tree"));
 
     if (std.os.argv.len > 1) {
         const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
