@@ -1,5 +1,6 @@
 const std = @import("std");
 const imgui = @import("imgui");
+const imutil = @import("imutil");
 const ast_context = @import("./ast_context.zig");
 const AstContext = ast_context.AstContext;
 const Screen = @import("./screen.zig").Screen;
@@ -22,15 +23,6 @@ pub fn delete(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-fn localFormat(comptime fmt: []const u8, values: anytype) [*:0]const u8 {
-    const S = struct {
-        var buf: [1024]u8 = undefined;
-    };
-    const label = std.fmt.bufPrint(&S.buf, fmt, values) catch unreachable;
-    S.buf[label.len] = 0;
-    return @ptrCast([*:0]const u8, &S.buf[0]);
-}
-
 fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
     imgui.TableNextRow(.{});
 
@@ -47,12 +39,12 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
 
     _ = imgui.TableNextColumn();
     imgui.SetNextItemOpen(if (self.selected_node) |selected| ast.findAncestor(selected, idx) else false, .{});
-    const opend = imgui.TreeNodeEx(localFormat("{}", .{idx}), .{ .flags = flags });
+    const opend = imgui.TreeNodeEx(imutil.localFormat("{}", .{idx}), .{ .flags = flags });
 
     // 1
     _ = imgui.TableNextColumn();
     // imgui.TextUnformatted(@tagName(ast.getNodeTag(idx)), .{});
-    if (imgui.Selectable(localFormat("{s}##{}", .{ @tagName(ast.getNodeTag(idx)), idx }), .{
+    if (imgui.Selectable(imutil.localFormat("{s}##{}", .{ @tagName(ast.getNodeTag(idx)), idx }), .{
         .selected = if (self.selected_node) |selected_node| selected_node == idx else false,
         .flags = @enumToInt(imgui.ImGuiSelectableFlags._SpanAllColumns) | @enumToInt(imgui.ImGuiSelectableFlags._AllowItemOverlap),
     })) {
@@ -86,14 +78,14 @@ pub fn show(self: *Self, p_open: *bool) void {
         if (self.screen.ast) |ast| {
             if (self.screen.layout.current_token) |token_idx| {
                 const token = ast.tokens.items[token_idx];
-                imgui.TextUnformatted(localFormat("[{}] {s}: {s}", .{
+                imgui.TextUnformatted(imutil.localFormat("[{}] {s}: {s}", .{
                     token_idx,
                     @tagName(token.tag),
                     ast.getTokenText(token),
                 }), .{});
                 self.selected_node = ast.tokens_node[token_idx];
             } else {
-                imgui.TextUnformatted(localFormat("no token", .{}), .{});
+                imgui.TextUnformatted(imutil.localFormat("no token", .{}), .{});
             }
 
             const flags = @enumToInt(imgui.ImGuiTableFlags._Resizable) | @enumToInt(imgui.ImGuiTableFlags._RowBg);

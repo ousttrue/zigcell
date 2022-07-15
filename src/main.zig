@@ -6,6 +6,10 @@ const imutil = @import("imutil");
 const Screen = @import("./screen.zig").Screen;
 const CursorDock = @import("./CursorDock.zig");
 const AstTreeDock = @import("./AstTreeDock.zig");
+const JsonRpc = @import("./JsonRpc.zig");
+const Stdio = @import("./Stdio.zig");
+const Transport = @import("./Transport.zig");
+const LspDock = @import("./LspDock.zig");
 
 fn getProc(_: ?*glfw.GLFWwindow, name: [:0]const u8) ?*const anyopaque {
     return glfw.glfwGetProcAddress(@ptrCast([*:0]const u8, name));
@@ -32,9 +36,9 @@ pub fn main() anyerror!void {
     glfw.glfwSwapInterval(1);
 
     try gl.load(window, getProc);
-    std.log.info("OpenGL Version:  {s}", .{std.mem.span(gl.getString(gl.VERSION))});
-    std.log.info("OpenGL Vendor:   {s}", .{std.mem.span(gl.getString(gl.VENDOR))});
-    std.log.info("OpenGL Renderer: {s}", .{std.mem.span(gl.getString(gl.RENDERER))});
+    // std.log.info("OpenGL Version:  {s}", .{std.mem.span(gl.getString(gl.VERSION))});
+    // std.log.info("OpenGL Vendor:   {s}", .{std.mem.span(gl.getString(gl.VENDOR))});
+    // std.log.info("OpenGL Renderer: {s}", .{std.mem.span(gl.getString(gl.RENDERER))});
 
     var app = imutil.ImGuiApp.init(allocator, window);
     defer app.deinit();
@@ -65,6 +69,24 @@ pub fn main() anyerror!void {
     }
 
     try screen.loadFont("C:/Windows/Fonts/consola.ttf", 30, 1024);
+
+    var stdio = Stdio.init();
+
+    var transport = Transport{
+        .ptr = &stdio,
+        .readLineFn = imutil.TypeEraser(Stdio, "readLine").call,
+    };
+
+    var jsonrpc: *JsonRpc = try JsonRpc.new(
+        gpa.allocator(),
+        &transport,
+    );
+    defer jsonrpc.delete();
+
+    // lsp dock
+    var lsp_dock = LspDock.new(allocator, jsonrpc);
+    defer lsp_dock.delete();
+    try app.docks.append(imutil.Dock.create(lsp_dock, "lsp"));
 
     // Loop until the user closes the window
     const io = imgui.GetIO();
