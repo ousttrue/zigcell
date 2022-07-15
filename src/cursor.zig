@@ -1,7 +1,7 @@
 const std = @import("std");
 const gl = @import("gl");
 const glo = @import("glo");
-const CursorPosition = @import("./cursor_position.zig").CursorPosition;
+const CursorPosition = @import("./CursorPosition.zig");
 
 const CURSOR_VS = @embedFile("./shaders/cursor.vs");
 const CURSOR_FS = @embedFile("./shaders/cursor.fs");

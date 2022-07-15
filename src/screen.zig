@@ -4,12 +4,12 @@ const glo = @import("glo");
 const imgui = @import("imgui");
 const imutil = @import("imutil");
 const Document = @import("./document.zig").Document;
-const layout = @import("./layout.zig");
+const LineLayout = @import("./LineLayout.zig");
 const font = @import("./font.zig");
 const ubo_buffer = @import("./ubo_buffer.zig");
-const CellVertex = layout.CellVertex;
+const CellVertex = LineLayout.CellVertex;
 const Cursor = @import("./cursor.zig").Cursor;
-const CursorPosition = @import("./cursor_position.zig").CursorPosition;
+const CursorPosition = @import("./CursorPosition.zig");
 const tokentree = @import("tokentree");
 const Parser = tokentree.Parser;
 const io = @import("./io.zig");
@@ -97,7 +97,7 @@ pub const Screen = struct {
     texture: ?glo.Texture = null,
     cursor: *Cursor,
 
-    layout: *layout.LineLayout,
+    layout: *LineLayout,
     layout_gen: usize = 0,
     scroll_top_left: CursorPosition = .{},
 
@@ -124,7 +124,7 @@ pub const Screen = struct {
             .ubo_glyphs = ubo_glyphs,
             .atlas = font.Atlas.new(allocator),
             .cursor = Cursor.new(allocator),
-            .layout = layout.LineLayout.new(allocator),
+            .layout = LineLayout.new(allocator),
         };
 
         vbo.setVertices(CellVertex, &self.layout.cells, true);

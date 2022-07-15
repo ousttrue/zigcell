@@ -4,7 +4,8 @@ const gl = @import("gl");
 const imgui = @import("imgui");
 const imutil = @import("imutil");
 const Screen = @import("./screen.zig").Screen;
-const CursorDock = @import("./cursor_dock.zig");
+const CursorDock = @import("./CursorDock.zig");
+const AstTreeDock = @import("./AstTreeDock.zig");
 
 fn getProc(_: ?*glfw.GLFWwindow, name: [:0]const u8) ?*const anyopaque {
     return glfw.glfwGetProcAddress(@ptrCast([*:0]const u8, name));
@@ -51,6 +52,9 @@ pub fn main() anyerror!void {
     var cursor_dock = CursorDock.new(allocator, screen);
     defer cursor_dock.delete();
     try app.docks.append(imutil.Dock.create(cursor_dock, "cursor"));
+
+    // ast tree dock
+    // var ast_tree_dock = AstTreeDock.new(allocator, screen)
 
     if (std.os.argv.len > 1) {
         const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
