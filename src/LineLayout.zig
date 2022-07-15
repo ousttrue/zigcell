@@ -108,6 +108,7 @@ cell_byte_positions: [65535]usize = undefined,
 cell_count: usize = 0,
 tokens: [65535]std.zig.Token = undefined,
 token_count: usize = 0,
+current_token: ?usize = null,
 
 lines: std.ArrayList([]CellVertex),
 cursor_position: CursorPosition = .{},
@@ -229,7 +230,7 @@ pub fn moveCursor(self: *Self, move: CursorPosition) ?usize {
         return null;
     }
 
-    std.debug.print("[moveCursor]{}\n", .{move});
+    // std.debug.print("[moveCursor]{}\n", .{move});
     self.cursor_position.row += move.row;
     if (self.cursor_position.row >= self.lines.items.len) {
         self.cursor_position.row = @intCast(i32, self.lines.items.len - 1);
@@ -251,17 +252,19 @@ pub fn moveCursor(self: *Self, move: CursorPosition) ?usize {
 
 /// return token index
 pub fn updateCursorGetActiveTokenIndex(self: *Self) ?usize {
+    self.current_token = null;
     if (self.getCellIndex(self.cursor_position)) |i| {
         self.cursor_byte_pos = self.cell_byte_positions[i];
-        std.debug.print("cursor: {} => cell index: {} => utf8 byte: {}\n", .{ self.cursor_position, i, self.cursor_byte_pos });
+        // std.debug.print("cursor: {} => cell index: {} => utf8 byte: {}\n", .{ self.cursor_position, i, self.cursor_byte_pos });
         var token_index: usize = 0;
         while (token_index < self.token_count) : (token_index += 1) {
             if (isInToken(self.cursor_byte_pos, self.tokens[token_index])) {
-                std.debug.print("token: {s}\n", .{@tagName(self.tokens[token_index].tag)});
+                // std.debug.print("token: {s}\n", .{@tagName(self.tokens[token_index].tag)});
+                self.current_token = token_index;
                 return token_index;
             }
         }
-        std.debug.print("no token\n", .{});
+        // std.debug.print("no token\n", .{});
     }
     return null;
 }

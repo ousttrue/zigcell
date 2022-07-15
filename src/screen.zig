@@ -186,11 +186,16 @@ pub const Screen = struct {
         if (imgui.IsItemFocused()) {
             for (getCursorMove()) |move| {
                 if (self.layout.moveCursor(move)) |token_index| {
-                    if (self.ast) |ast| {
-                        if (ast.getAstPath(token_index)) |path| {
-                            std.debug.print("{}\n", .{path});
-                        }
-                    }
+                    _ = token_index;
+                    // if (self.ast) |ast| {
+                    //     if (ast.getAstPath(token_index)) |path| {
+                    //         // std.debug.print("{}\n", .{path});
+
+                    //     }
+                    //     else{
+
+                    //     }
+                    // }
                 }
             }
         }

@@ -37,7 +37,7 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
     // 0
     var flags = @enumToInt(imgui.ImGuiTreeNodeFlags._OpenOnArrow) | @enumToInt(imgui.ImGuiTreeNodeFlags._OpenOnDoubleClick)
     // | @enumToInt(imgui.ImGuiTreeNodeFlags._SpanAvailWidth)
-    ;
+    | @enumToInt(imgui.ImGuiTreeNodeFlags._DefaultOpen);
     if (ast_context.getChildren(ast.tree, idx).len == 0) {
         flags |= @enumToInt(imgui.ImGuiTreeNodeFlags._Leaf);
     }
@@ -80,6 +80,18 @@ pub fn show(self: *Self, p_open: *bool) void {
 
     if (imgui.Begin("ast tree", .{ .p_open = p_open })) {
         if (self.screen.ast) |ast| {
+            if (self.screen.layout.current_token) |token_idx| {
+                const token = ast.tokens.items[token_idx];
+                imgui.TextUnformatted(localFormat("[{}] {s}: {s}", .{
+                    token_idx,
+                    @tagName(token.tag),
+                    ast.getTokenText(token),
+                }), .{});
+                self.selected_node = ast.tokens_node[token_idx];
+            } else {
+                imgui.TextUnformatted(localFormat("no token", .{}), .{});
+            }
+
             const flags = @enumToInt(imgui.ImGuiTableFlags._Resizable) | @enumToInt(imgui.ImGuiTableFlags._RowBg);
             if (imgui.BeginTable("ast table", 3, .{ .flags = flags })) {
                 // header
