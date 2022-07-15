@@ -12,7 +12,7 @@ pub const TypeEraser = type_eraser.TypeEraser;
 
 pub fn localFormat(comptime fmt: []const u8, values: anytype) [*:0]const u8 {
     const S = struct {
-        var buf: [1024]u8 = undefined;
+        var buf: [8192]u8 = undefined;
     };
     const label = std.fmt.bufPrint(&S.buf, fmt, values) catch unreachable;
     S.buf[label.len] = 0;

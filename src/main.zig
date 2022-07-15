@@ -74,7 +74,8 @@ pub fn main() anyerror!void {
 
     var transport = Transport{
         .ptr = &stdio,
-        .readLineFn = imutil.TypeEraser(Stdio, "readLine").call,
+        .readUntilCRLFFn = imutil.TypeEraser(Stdio, "readUntilCRLF").call,
+        .readFn = imutil.TypeEraser(Stdio, "read").call,
     };
 
     var jsonrpc: *JsonRpc = try JsonRpc.new(
