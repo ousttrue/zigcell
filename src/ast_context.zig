@@ -184,4 +184,14 @@ pub const AstContext = struct {
 
         return null;
     }
+
+    pub fn findAncestor(self: Self, idx: u32, target: u32) bool {
+        var current = self.nodes_parent[idx];
+        while (current != 0) : (current = self.nodes_parent[current]) {
+            if (current == target) {
+                return true;
+            }
+        }
+        return false;
+    }
 };

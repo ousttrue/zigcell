@@ -37,7 +37,8 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
     // 0
     var flags = @enumToInt(imgui.ImGuiTreeNodeFlags._OpenOnArrow) | @enumToInt(imgui.ImGuiTreeNodeFlags._OpenOnDoubleClick)
     // | @enumToInt(imgui.ImGuiTreeNodeFlags._SpanAvailWidth)
-    | @enumToInt(imgui.ImGuiTreeNodeFlags._DefaultOpen);
+    // | @enumToInt(imgui.ImGuiTreeNodeFlags._DefaultOpen)
+    ;
     var _children: [64]u32 = undefined;
     const children = ast_context.getChildren(&_children, ast.tree, idx);
     if (children.len == 0) {
@@ -45,6 +46,7 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
     }
 
     _ = imgui.TableNextColumn();
+    imgui.SetNextItemOpen(if (self.selected_node) |selected| ast.findAncestor(selected, idx) else false, .{});
     const opend = imgui.TreeNodeEx(localFormat("{}", .{idx}), .{ .flags = flags });
 
     // 1
