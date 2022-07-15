@@ -45,7 +45,7 @@ pub const ImGuiApp = struct {
         };
 
         self.docks.append(dockspace.Dock.create(&self.metrics, "metrics")) catch unreachable;
-        // self.docks.append(dockspace.Dock.create(&self.demo, "demo")) catch unreachable;
+        self.docks.append(dockspace.Dock.create(&self.demo, "demo")) catch unreachable;
 
         return self;
     }

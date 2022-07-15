@@ -54,13 +54,6 @@ pub fn build(b: *std.build.Builder) void {
     };
     exe.addPackage(zls_pkg);
 
-    const tokentree_pkg = std.build.Pkg{
-        .name = "tokentree",
-        .path = std.build.FileSource{ .path = "pkgs/tokentree/src/main.zig" },
-        .dependencies = &.{zls_pkg},
-    };
-    exe.addPackage(tokentree_pkg);
-
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {

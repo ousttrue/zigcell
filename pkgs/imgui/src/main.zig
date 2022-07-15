@@ -3209,7 +3209,7 @@ pub fn IsPopupOpen(str_id: ?[*:0]const u8, __default: struct{flags: c_int= 0}) b
     return _ZN5ImGui11IsPopupOpenEPKci(str_id, __default.flags);
 }
 extern "c" fn _ZN5ImGui10BeginTableEPKciiRK6ImVec2f(str_id: ?[*:0]const u8, column: c_int, flags: c_int, outer_size: *const ImVec2, inner_width: f32) bool;
-pub fn BeginTable(str_id: ?[*:0]const u8, column: c_int, __default: struct{flags: c_int= 0, outer_size: ImVec2= ImVec2(0.0,0.0), inner_width: f32= 0.0}) bool
+pub fn BeginTable(str_id: ?[*:0]const u8, column: c_int, __default: struct{flags: c_int= 0, outer_size: ImVec2= ImVec2{.x=0.0,.y=0.0}, inner_width: f32= 0.0}) bool
 {
     return _ZN5ImGui10BeginTableEPKciiRK6ImVec2f(str_id, column, __default.flags, &__default.outer_size, __default.inner_width);
 }

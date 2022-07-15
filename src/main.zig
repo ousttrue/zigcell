@@ -54,7 +54,7 @@ pub fn main() anyerror!void {
     try app.docks.append(imutil.Dock.create(cursor_dock, "cursor"));
 
     // ast tree dock
-    var ast_tree_dock = AstTreeDock.new(allocator, screen.layout);
+    var ast_tree_dock = AstTreeDock.new(allocator, screen);
     defer ast_tree_dock.delete();
     try app.docks.append(imutil.Dock.create(ast_tree_dock, "ast tree"));
 

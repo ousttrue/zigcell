@@ -1,6 +1,4 @@
 const std = @import("std");
-// const token_tree = @import("./token_tree.zig");
-// const Node = token_tree.Node;
 
 fn getAllTokens(allocator: std.mem.Allocator, source: [:0]const u8) std.ArrayList(std.zig.Token) {
     var tokens = std.ArrayList(std.zig.Token).init(allocator);
@@ -83,6 +81,8 @@ pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
     }
 }
 
+pub const AstPath = struct {};
+
 pub const AstContext = struct {
     const Self = @This();
     allocator: std.mem.Allocator,
@@ -152,5 +152,27 @@ pub const AstContext = struct {
             return null;
         }
         return self.nodes_parent[idx];
+    }
+
+    pub fn getNodeTag(self: Self, idx: u32) std.zig.Ast.Node.Tag {
+        const tag = self.tree.nodes.items(.tag);
+        return tag[idx];
+    }
+
+    pub fn getMainToken(self: Self, idx: u32) std.zig.Token {
+        const main_token = self.tree.nodes.items(.main_token);
+        const token_idx = main_token[idx];
+        return self.tokens.items[token_idx];
+    }
+
+    pub fn getAstPath(self: Self, token_idx: usize) ?AstPath {
+        const tag = self.tree.nodes.items(.tag);
+        var idx = self.tokens_node[token_idx];
+        while (self.getParentNode(idx)) |parent| : (idx = parent) {
+            std.debug.print(", {}[{s}]", .{ idx, @tagName(tag[idx]) });
+        }
+        std.debug.print("\n", .{});
+
+        return null;
     }
 };

@@ -10,8 +10,8 @@ const ubo_buffer = @import("./ubo_buffer.zig");
 const CellVertex = LineLayout.CellVertex;
 const Cursor = @import("./cursor.zig").Cursor;
 const CursorPosition = @import("./CursorPosition.zig");
-const tokentree = @import("tokentree");
-const Parser = tokentree.Parser;
+const ast_context = @import("ast_context.zig");
+const AstContext = ast_context.AstContext;
 const io = @import("./io.zig");
 
 const CELL_GLYPH_VS = @embedFile("./shaders/cell_glyph.vs");
@@ -90,7 +90,7 @@ pub const Screen = struct {
 
     document: ?*Document = null,
     document_gen: usize = 0,
-    parser: ?*Parser = null,
+    ast: ?*AstContext = null,
 
     draw_count: u32 = 0,
     atlas: *font.Atlas,
@@ -136,8 +136,8 @@ pub const Screen = struct {
         if (self.document) |document| {
             document.delete();
         }
-        if (self.parser) |parser| {
-            parser.delete();
+        if (self.ast) |ast| {
+            ast.delete();
         }
         if (self.texture) |*texture| {
             texture.deinit();
@@ -162,7 +162,7 @@ pub const Screen = struct {
         self.document = Document.new(self.allocator, bytes);
         self.document_gen += 1;
         if (self.document) |document| {
-            self.parser = try Parser.parse(self.allocator, document.utf8Slice());
+            self.ast = AstContext.new(self.allocator, document.utf8Slice());
         }
     }
 
@@ -186,8 +186,8 @@ pub const Screen = struct {
         if (imgui.IsItemFocused()) {
             for (getCursorMove()) |move| {
                 if (self.layout.moveCursor(move)) |token_index| {
-                    if (self.parser) |parser| {
-                        if (parser.getAstPath(token_index)) |path| {
+                    if (self.ast) |ast| {
+                        if (ast.getAstPath(token_index)) |path| {
                             std.debug.print("{}\n", .{path});
                         }
                     }
