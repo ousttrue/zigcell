@@ -62,11 +62,11 @@ pub fn main() anyerror!void {
     defer ast_tree_dock.delete();
     try app.docks.append(imutil.Dock.create(ast_tree_dock, "ast tree"));
 
-    if (std.os.argv.len > 1) {
-        const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
-        defer allocator.free(arg1);
-        try screen.open(arg1);
-    }
+    // if (std.os.argv.len > 1) {
+    //     const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
+    //     defer allocator.free(arg1);
+    //     try screen.open(arg1);
+    // }
 
     try screen.loadFont("C:/Windows/Fonts/consola.ttf", 30, 1024);
 

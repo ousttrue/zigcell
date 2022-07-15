@@ -52,5 +52,6 @@ fn startReader(self: *Self) void {
         // receive message
 
         // dispatch
+        break;
     }
 }
