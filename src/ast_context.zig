@@ -57,7 +57,7 @@ pub fn getChildren(tree: std.zig.Ast, idx: u32) []const u32 {
         },
         .string_literal => children[0..0],
         else => blk: {
-            std.debug.print("unknown node: {s}\n", .{@tagName(node_tag)});
+            // std.debug.print("unknown node: {s}\n", .{@tagName(node_tag)});
             break :blk &.{};
         },
     };
