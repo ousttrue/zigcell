@@ -19,12 +19,11 @@ fn getAllTokens(allocator: std.mem.Allocator, source: [:0]const u8) std.ArrayLis
     return tokens;
 }
 
-pub fn getChildren(tree: std.zig.Ast, idx: u32) []const u32 {
+pub fn getChildren(children: []u32, tree: std.zig.Ast, idx: u32) []u32 {
     const tag = tree.nodes.items(.tag);
     const node_tag = tag[idx];
     const data = tree.nodes.items(.data);
     const node_data = data[idx];
-    var children: [2]u32 = undefined;
     var count: u32 = 0;
 
     return switch (node_tag) {
@@ -39,6 +38,15 @@ pub fn getChildren(tree: std.zig.Ast, idx: u32) []const u32 {
                 count += 1;
             }
             break :blk children[0..count];
+        },
+        .fn_decl => blk: {
+            // fn_proto
+            children[0] = node_data.lhs;
+
+            // body
+            children[1] = node_data.rhs;
+
+            break :blk children[0..2];
         },
         .builtin_call_two => blk: {
             if (node_data.lhs != 0) {
@@ -74,7 +82,8 @@ pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
         context.tokens_node[token_idx] = idx;
     }
 
-    for (getChildren(context.tree, idx)) |child| {
+    var children: [64]u32 = undefined;
+    for (getChildren(&children, context.tree, idx)) |child| {
         stack.append(child) catch unreachable;
         traverse(context, stack);
         _ = stack.pop();

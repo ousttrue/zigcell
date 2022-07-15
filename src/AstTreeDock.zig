@@ -38,7 +38,9 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
     var flags = @enumToInt(imgui.ImGuiTreeNodeFlags._OpenOnArrow) | @enumToInt(imgui.ImGuiTreeNodeFlags._OpenOnDoubleClick)
     // | @enumToInt(imgui.ImGuiTreeNodeFlags._SpanAvailWidth)
     | @enumToInt(imgui.ImGuiTreeNodeFlags._DefaultOpen);
-    if (ast_context.getChildren(ast.tree, idx).len == 0) {
+    var _children: [64]u32 = undefined;
+    const children = ast_context.getChildren(&_children, ast.tree, idx);
+    if (children.len == 0) {
         flags |= @enumToInt(imgui.ImGuiTreeNodeFlags._Leaf);
     }
 
@@ -66,7 +68,7 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
 
     // children
     if (opend) {
-        for (ast_context.getChildren(ast.tree, idx)) |child| {
+        for (children) |child| {
             self.showTree(ast, child);
         }
         imgui.TreePop();
