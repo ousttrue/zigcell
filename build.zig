@@ -47,12 +47,12 @@ pub fn build(b: *std.build.Builder) void {
     };
     exe.addPackage(imutil_pkg);
 
-    const zls_pkg = std.build.Pkg{
-        .name = "zls",
-        .path = std.build.FileSource{ .path = "pkgs/zls/src/main.zig" },
-        .dependencies = &.{},
-    };
-    exe.addPackage(zls_pkg);
+    // const zls_pkg = std.build.Pkg{
+    //     .name = "zls",
+    //     .path = std.build.FileSource{ .path = "pkgs/zls/src/main.zig" },
+    //     .dependencies = &.{},
+    // };
+    // exe.addPackage(zls_pkg);
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
