@@ -1,6 +1,6 @@
 const std = @import("std");
-const token_tree = @import("./token_tree.zig");
-const Node = token_tree.Node;
+// const token_tree = @import("./token_tree.zig");
+// const Node = token_tree.Node;
 
 fn getAllTokens(allocator: std.mem.Allocator, source: [:0]const u8) std.ArrayList(std.zig.Token) {
     var tokens = std.ArrayList(std.zig.Token).init(allocator);
@@ -59,7 +59,7 @@ pub fn getChildren(tree: std.zig.Ast, idx: u32) []const u32 {
         },
         .string_literal => children[0..0],
         else => blk: {
-            std.debug.print("unknown {s}\n", .{@tagName(node_tag)});
+            std.debug.print("unknown node: {s}\n", .{@tagName(node_tag)});
             break :blk &.{};
         },
     };
@@ -67,18 +67,14 @@ pub fn getChildren(tree: std.zig.Ast, idx: u32) []const u32 {
 
 pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
     const tree = context.tree;
-    const tag = tree.nodes.items(.tag);
     const idx = stack.items[stack.items.len - 1];
-
-    for (stack.items) |x, i| {
-        if (i > 0) {
-            std.debug.print(", ", .{});
-        }
-        std.debug.print("{}", .{x});
+    context.nodes_parent[idx] = stack.items[stack.items.len - 2];
+    const token_start = tree.firstToken(idx);
+    const token_last = tree.lastToken(idx);
+    var token_idx = token_start;
+    while (token_idx <= token_last) : (token_idx += 1) {
+        context.tokens_node[token_idx] = idx;
     }
-    const node = Node.init(context, idx);
-    std.debug.print("=>{s} {}..{}", .{ @tagName(tag[idx]), node.token_start, node.token_last });
-    std.debug.print("\n", .{});
 
     for (getChildren(context.tree, idx)) |child| {
         stack.append(child) catch unreachable;
@@ -114,7 +110,11 @@ pub const AstContext = struct {
 
         var stack = std.ArrayList(u32).init(allocator);
         defer stack.deinit();
+
+        // root
+        stack.append(0) catch unreachable;
         for (tree.rootDecls()) |decl| {
+            // top level
             stack.append(decl) catch unreachable;
             traverse(self, &stack);
             _ = stack.pop();
@@ -145,5 +145,12 @@ pub const AstContext = struct {
 
     pub fn getNodeTokens(self: Self, idx: u32) []const std.zig.Token {
         return self.getTokens(self.tree.firstToken(idx), self.tree.lastToken(idx));
+    }
+
+    pub fn getParentNode(self: Self, idx: u32) ?u32 {
+        if (idx == 0) {
+            return null;
+        }
+        return self.nodes_parent[idx];
     }
 };

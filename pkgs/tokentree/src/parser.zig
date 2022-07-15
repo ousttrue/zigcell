@@ -30,9 +30,14 @@ pub const Parser = struct {
         return self;
     }
 
-    pub fn getAstPath(self: Self, token_index: usize) ?AstPath {
-        _ = self;
-        _ = token_index;
+    pub fn getAstPath(self: Self, token_idx: usize) ?AstPath {
+        const tag = self.context.tree.nodes.items(.tag);
+        var idx = self.context.tokens_node[token_idx];
+        while (self.context.getParentNode(idx)) |parent| : (idx = parent) {
+            std.debug.print(", {}[{s}]", .{ idx, @tagName(tag[idx]) });
+        }
+        std.debug.print("\n", .{});
+
         return null;
     }
 };
