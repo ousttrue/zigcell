@@ -67,7 +67,8 @@ fn startReader(self: *Self, transport: *Transport, dispatcher: *Dispatcher) void
             } else {
                 if (input.getMethod()) |method| {
                     // notify
-                    dispatcher.dispatchNotify(method, input.getParams());
+                    _ = method;
+                    // dispatcher.dispatchNotify(method, input.getParams());
                 } else {
                     // invalid
                     // input.send(lsp.Response.createParseError());

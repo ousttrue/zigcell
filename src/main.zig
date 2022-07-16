@@ -12,6 +12,7 @@ const Stdio = jsonrpc.Stdio;
 const Transport = jsonrpc.Transport;
 const LspDock = @import("./LspDock.zig");
 const lsp = @import("lsp");
+const LanguageServer = @import("./LanguageServer.zig");
 
 fn getProc(_: ?*glfw.GLFWwindow, name: [:0]const u8) ?*const anyopaque {
     return glfw.glfwGetProcAddress(@ptrCast([*:0]const u8, name));
@@ -82,6 +83,9 @@ pub fn main() anyerror!void {
 
     var dispatcher = lsp.Dispatcher.init(gpa.allocator());
     defer dispatcher.deinit();
+
+    var ls = LanguageServer{};
+    dispatcher.registerRequest(&ls, "initialize");
 
     var rpc: *JsonRpc = try JsonRpc.new(
         gpa.allocator(),
