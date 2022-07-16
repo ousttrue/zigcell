@@ -2,13 +2,13 @@ const std = @import("std");
 const imutil = @import("imutil");
 const Self = @This();
 const Transport = @import("./Transport.zig");
-const Message = @import("./Message.zig");
+const Input = @import("./Input.zig");
 
 running: bool = true,
 allocator: std.mem.Allocator,
 transport: *Transport,
 thread: std.Thread,
-last_message: ?Message = null,
+last_input: ?Input = null,
 last_err: ?anyerror = null,
 
 pub fn new(allocator: std.mem.Allocator, transport: *Transport) !*Self {
@@ -24,19 +24,19 @@ pub fn new(allocator: std.mem.Allocator, transport: *Transport) !*Self {
 
 pub fn delete(self: *Self) void {
     self.running = false;
-    if (self.last_message) |*message| {
-        message.deinit();
+    if (self.last_input) |*input| {
+        input.deinit();
     }
     // self.thread.join();
     self.allocator.destroy(self);
 }
 
-fn dispatch(self: *Self, message: Message) void {
-    if (self.last_message) |*last_message| {
-        last_message.deinit();
+fn dispatch(self: *Self, input: Input) void {
+    if (self.last_input) |*last_input| {
+        last_input.deinit();
     }
     self.last_err = null;
-    self.last_message = message;
+    self.last_input = input;
 }
 
 fn startReader(self: *Self) void {
@@ -45,11 +45,11 @@ fn startReader(self: *Self) void {
 
     while (self.running) {
         json_parser.reset();
-        if (Message.init(self.allocator, self.transport, &json_parser)) |message| {
-            self.dispatch(message);
+        if (Input.init(self.allocator, self.transport, &json_parser)) |input| {
+            self.dispatch(input);
         } else |err| {
             // shutdown
-            self.last_message = null;
+            self.last_input = null;
             self.last_err = err;
             break;
         }

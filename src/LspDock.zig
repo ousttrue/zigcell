@@ -75,9 +75,9 @@ pub fn show(self: *Self, p_open: *bool) void {
         if (self.jsonrpc.last_err) |err| {
             imgui.TextUnformatted(imutil.localFormat("{s}", .{@errorName(err)}), .{});
         }
-        if (self.jsonrpc.last_message) |message| {
-            imgui.TextUnformatted(imutil.localFormat("{}", .{message.content_length}), .{});
-            self.show_json("root", message.tree.root);
+        if (self.jsonrpc.last_input) |input| {
+            imgui.TextUnformatted(imutil.localFormat("{}", .{input.content_length}), .{});
+            self.show_json("root", input.tree.root);
         }
     }
     imgui.End();
