@@ -16,11 +16,11 @@ thread: std.Thread,
 last_input: ?Input = null,
 last_err: ?anyerror = null,
 
-pub fn new(allocator: std.mem.Allocator, transport: *Transport, dispatcher: *Dispatcher) !*Self {
-    var self = try allocator.create(Self);
+pub fn new(allocator: std.mem.Allocator, transport: *Transport, dispatcher: *Dispatcher) *Self {
+    var self = allocator.create(Self) catch unreachable;
     self.* = Self{
         .allocator = allocator,
-        .thread = try std.Thread.spawn(.{}, startReader, .{ self, transport, dispatcher }),
+        .thread = std.Thread.spawn(.{}, startReader, .{ self, transport, dispatcher }) catch unreachable,
     };
     return self;
 }
@@ -56,7 +56,7 @@ fn startReader(self: *Self, transport: *Transport, dispatcher: *Dispatcher) void
                     // request
                     const bytes = dispatcher.dispatchRequest(id, method, input.getParams());
                     transport.send(bytes) catch |err|
-                    {
+                        {
                         self.last_err = err;
                         break;
                     };

@@ -3,12 +3,11 @@ const Transport = @import("./Transport.zig");
 const TypeEraser = @import("util").TypeEraser;
 const Self = @This();
 
-reader: std.fs.File.Reader,
-writer: std.fs.File.Writer,
-
 pub const Error = error{
     NoCR,
 };
+reader: std.fs.File.Reader,
+writer: std.fs.File.Writer,
 
 pub fn init() Self {
     return Self{

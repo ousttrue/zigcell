@@ -5,13 +5,12 @@ const Self = @This();
 const JsonRpc = @import("jsonrpc").JsonRpc;
 
 allocator: std.mem.Allocator,
-jsonrpc: *JsonRpc,
+rpc: ?*JsonRpc = null,
 
-pub fn new(allocator: std.mem.Allocator, jsonrpc: *JsonRpc) *Self {
+pub fn new(allocator: std.mem.Allocator) *Self {
     var self = allocator.create(Self) catch unreachable;
     self.* = Self{
         .allocator = allocator,
-        .jsonrpc = jsonrpc,
     };
     return self;
 }
@@ -72,12 +71,14 @@ pub fn show(self: *Self, p_open: *bool) void {
     }
 
     if (imgui.Begin("jsonrpc", .{ .p_open = p_open })) {
-        if (self.jsonrpc.last_err) |err| {
-            imgui.TextUnformatted(imutil.localFormat("{s}", .{@errorName(err)}), .{});
-        }
-        if (self.jsonrpc.last_input) |input| {
-            imgui.TextUnformatted(imutil.localFormat("{}", .{input.content_length}), .{});
-            self.show_json("root", input.tree.root);
+        if (self.rpc) |rpc| {
+            if (rpc.last_err) |err| {
+                imgui.TextUnformatted(imutil.localFormat("{s}", .{@errorName(err)}), .{});
+            }
+            if (rpc.last_input) |input| {
+                imgui.TextUnformatted(imutil.localFormat("{}", .{input.content_length}), .{});
+                self.show_json("root", input.tree.root);
+            }
         }
     }
     imgui.End();

@@ -12,10 +12,58 @@ const Transport = jsonrpc.Transport;
 const LspDock = @import("./LspDock.zig");
 const lsp = @import("lsp");
 const LanguageServer = @import("./LanguageServer.zig");
+const LISTEN_PORT: u16 = 51764;
 
 fn getProc(_: ?*glfw.GLFWwindow, name: [:0]const u8) ?*const anyopaque {
     return glfw.glfwGetProcAddress(@ptrCast([*:0]const u8, name));
 }
+
+var node: std.atomic.Queue(std.net.StreamServer.Connection).Node = undefined;
+
+fn startServer(alive: *bool, server: *std.net.StreamServer, queue: *std.atomic.Queue(std.net.StreamServer.Connection)) void {
+    const addr = std.net.Address.parseIp("127.0.0.1", LISTEN_PORT) catch unreachable;
+    server.listen(addr) catch unreachable;
+
+    while (alive.*) {
+        if (server.accept()) |conn| {
+            node = .{
+                .data = conn,
+                .next = undefined,
+                .prev = undefined,
+            };
+            queue.put(&node);
+        } else |_| {                
+            // std.log.err("{s}", @errorName(err));
+            break;
+        }
+    }
+}
+
+pub const LspClient = struct {
+    const Self = @This();
+
+    tcp: jsonrpc.Tcp,
+    transport: jsonrpc.Transport = undefined,
+    rpc: *JsonRpc = undefined,
+
+    pub fn init(allocator: std.mem.Allocator, conn: std.net.StreamServer.Connection, dispatcher: *lsp.Dispatcher) Self {
+        var self = Self{
+            .tcp = jsonrpc.Tcp.init(conn.stream),
+        };
+        self.transport = self.tcp.transport();
+        self.rpc = JsonRpc.new(
+            allocator,
+            &self.transport,
+            dispatcher,
+        );
+        return self;
+    }
+
+    pub fn deinit(self: *Self) void {
+        self.rpc.delete();
+        self.tcp.deinit();
+    }
+};
 
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -64,6 +112,11 @@ pub fn main() anyerror!void {
     defer ast_tree_dock.delete();
     try app.docks.append(imutil.Dock.create(ast_tree_dock, "ast tree"));
 
+    // lsp dock
+    var lsp_dock = LspDock.new(allocator);
+    defer lsp_dock.delete();
+    try app.docks.append(imutil.Dock.create(lsp_dock, "lsp"));
+
     // if (std.os.argv.len > 1) {
     //     const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
     //     defer allocator.free(arg1);
@@ -72,30 +125,31 @@ pub fn main() anyerror!void {
 
     try screen.loadFont("C:/Windows/Fonts/consola.ttf", 30, 1024);
 
-    var stdio = jsonrpc.Stdio.init();
-    var transport = stdio.transport();
-
     var dispatcher = lsp.Dispatcher.init(gpa.allocator());
     defer dispatcher.deinit();
 
     var ls = LanguageServer{};
     dispatcher.registerRequest(&ls, "initialize");
 
-    var rpc: *JsonRpc = try JsonRpc.new(
-        gpa.allocator(),
-        &transport,
-        &dispatcher,
-    );
-    defer rpc.delete();
+    var server = std.net.StreamServer.init(.{});
+    // defer server.deinit();
+    var is_alive = true;
+    var queue = std.atomic.Queue(std.net.StreamServer.Connection).init();
+    const thread = try std.Thread.spawn(.{}, startServer, .{ &is_alive, &server, &queue });
+    _ = thread;
+    // defer thread.join();
 
-    // lsp dock
-    var lsp_dock = LspDock.new(allocator, rpc);
-    defer lsp_dock.delete();
-    try app.docks.append(imutil.Dock.create(lsp_dock, "lsp"));
+    var client: ?LspClient = null;
 
     // Loop until the user closes the window
     const io = imgui.GetIO();
     while (glfw.glfwWindowShouldClose(window) == 0) {
+        if (queue.get()) |item| {
+            var new_client = LspClient.init(gpa.allocator(), item.data, &dispatcher);
+            lsp_dock.rpc = new_client.rpc;
+            client = new_client;
+        }
+
         // Poll for and process events
         glfw.glfwPollEvents();
 
@@ -114,4 +168,7 @@ pub fn main() anyerror!void {
         // Swap front and back buffers
         glfw.glfwSwapBuffers(window);
     }
+
+    is_alive = false;
+    // server.close();
 }
