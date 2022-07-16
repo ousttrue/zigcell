@@ -8,7 +8,6 @@ const CursorDock = @import("./CursorDock.zig");
 const AstTreeDock = @import("./AstTreeDock.zig");
 const jsonrpc = @import("jsonrpc");
 const JsonRpc = jsonrpc.JsonRpc;
-const Stdio = jsonrpc.Stdio;
 const Transport = jsonrpc.Transport;
 const LspDock = @import("./LspDock.zig");
 const lsp = @import("lsp");
@@ -73,13 +72,8 @@ pub fn main() anyerror!void {
 
     try screen.loadFont("C:/Windows/Fonts/consola.ttf", 30, 1024);
 
-    var stdio = Stdio.init();
-    var transport = Transport{
-        .ptr = &stdio,
-        .readUntilCRLFFn = imutil.TypeEraser(Stdio, "readUntilCRLF").call,
-        .readFn = imutil.TypeEraser(Stdio, "read").call,
-        .writeFn = imutil.TypeEraser(Stdio, "write").call,
-    };
+    var stdio = jsonrpc.Stdio.init();
+    var transport = stdio.transport();
 
     var dispatcher = lsp.Dispatcher.init(gpa.allocator());
     defer dispatcher.deinit();

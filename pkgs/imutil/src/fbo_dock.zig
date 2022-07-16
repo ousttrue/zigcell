@@ -1,7 +1,7 @@
 const std = @import("std");
 const glo = @import("glo");
 const imgui = @import("imgui");
-const TypeEraser = @import("./type_eraser.zig").TypeEraser;
+const TypeEraser = @import("util").TypeEraser;
 
 const FLT_MAX: f32 = 3.402823466e+38;
 

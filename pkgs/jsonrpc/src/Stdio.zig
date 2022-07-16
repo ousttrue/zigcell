@@ -1,4 +1,6 @@
 const std = @import("std");
+const Transport = @import("./Transport.zig");
+const TypeEraser = @import("util").TypeEraser;
 const Self = @This();
 
 reader: std.fs.File.Reader,
@@ -31,4 +33,13 @@ pub fn read(self: *Self, buffer: []u8) !void {
 pub fn write(self: *Self, buffer: []const u8) !void {
     const size = try self.writer.write(buffer);
     std.debug.assert(size == buffer.len);
+}
+
+pub fn transport(self: *Self) Transport {
+    return Transport{
+        .ptr = self,
+        .readUntilCRLFFn = TypeEraser(Self, "readUntilCRLF").call,
+        .readFn = TypeEraser(Self, "read").call,
+        .writeFn = TypeEraser(Self, "write").call,
+    };
 }

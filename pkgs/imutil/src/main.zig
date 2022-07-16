@@ -2,13 +2,11 @@ const std = @import("std");
 const imgui_app = @import("./imgui_app.zig");
 const fbo_dock = @import("./fbo_dock.zig");
 const dockspace = @import("./dockspace.zig");
-const type_eraser = @import("./type_eraser.zig");
 
 pub const ImGuiApp = imgui_app.ImGuiApp;
 pub const FboDock = fbo_dock.FboDock;
 pub const MouseInput = fbo_dock.MouseInput;
 pub const Dock = dockspace.Dock;
-pub const TypeEraser = type_eraser.TypeEraser;
 
 pub fn localFormat(comptime fmt: []const u8, values: anytype) [*:0]const u8 {
     const S = struct {

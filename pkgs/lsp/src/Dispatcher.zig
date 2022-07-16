@@ -4,7 +4,7 @@ const response = @import("./response.zig");
 const Response = response.Response;
 const ResponseResult = response.ResponseResult;
 const ResponseError = response.ResponseError;
-const TypeEraser = @import("./type_eraser.zig").TypeEraser;
+const TypeEraser = @import("util").TypeEraser;
 
 pub const DispatchError = error{
     InvalidParams,

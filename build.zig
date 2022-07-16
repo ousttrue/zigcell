@@ -40,24 +40,31 @@ pub fn build(b: *std.build.Builder) void {
     _ = stb.addTo(allocator, exe, "pkgs/stb");
     const imgui_pkg = imgui.addTo(allocator, exe, "pkgs/imgui");
 
+    const util_pkg = std.build.Pkg{
+        .name = "util",
+        .path = std.build.FileSource{ .path = "pkgs/util/src/main.zig" },
+        .dependencies = &.{},
+    };
+    exe.addPackage(util_pkg);
+
     const imutil_pkg = std.build.Pkg{
         .name = "imutil",
         .path = std.build.FileSource{ .path = "pkgs/imutil/src/main.zig" },
-        .dependencies = &.{ gl_pkg, glo_pkg, imgui_pkg },
+        .dependencies = &.{ gl_pkg, glo_pkg, imgui_pkg, util_pkg },
     };
     exe.addPackage(imutil_pkg);
 
     const lsp_pkg = std.build.Pkg{
         .name = "lsp",
         .path = std.build.FileSource{ .path = "pkgs/lsp/src/main.zig" },
-        .dependencies = &.{},
+        .dependencies = &.{util_pkg},
     };
     exe.addPackage(lsp_pkg);
 
     const jsonrpc_pkg = std.build.Pkg{
         .name = "jsonrpc",
         .path = std.build.FileSource{ .path = "pkgs/jsonrpc/src/main.zig" },
-        .dependencies = &.{lsp_pkg},
+        .dependencies = &.{ lsp_pkg, util_pkg },
     };
     exe.addPackage(jsonrpc_pkg);
 

@@ -1,6 +1,6 @@
 const std = @import("std");
 const imgui = @import("imgui");
-const TypeEraser = @import("./type_eraser.zig").TypeEraser;
+const TypeEraser = @import("util").TypeEraser;
 
 pub fn dockspace(name: [*:0]const u8, toolbar_size: f32) i32 {
     var io = imgui.GetIO();
