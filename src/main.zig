@@ -6,9 +6,10 @@ const imutil = @import("imutil");
 const Screen = @import("./screen.zig").Screen;
 const CursorDock = @import("./CursorDock.zig");
 const AstTreeDock = @import("./AstTreeDock.zig");
-const JsonRpc = @import("./JsonRpc.zig");
-const Stdio = @import("./Stdio.zig");
-const Transport = @import("./Transport.zig");
+const jsonrpc = @import("jsonrpc");
+const JsonRpc = jsonrpc.JsonRpc;
+const Stdio = jsonrpc.Stdio;
+const Transport = jsonrpc.Transport;
 const LspDock = @import("./LspDock.zig");
 
 fn getProc(_: ?*glfw.GLFWwindow, name: [:0]const u8) ?*const anyopaque {
@@ -71,21 +72,20 @@ pub fn main() anyerror!void {
     try screen.loadFont("C:/Windows/Fonts/consola.ttf", 30, 1024);
 
     var stdio = Stdio.init();
-
     var transport = Transport{
         .ptr = &stdio,
         .readUntilCRLFFn = imutil.TypeEraser(Stdio, "readUntilCRLF").call,
         .readFn = imutil.TypeEraser(Stdio, "read").call,
     };
 
-    var jsonrpc: *JsonRpc = try JsonRpc.new(
+    var rpc: *JsonRpc = try JsonRpc.new(
         gpa.allocator(),
         &transport,
     );
-    defer jsonrpc.delete();
+    defer rpc.delete();
 
     // lsp dock
-    var lsp_dock = LspDock.new(allocator, jsonrpc);
+    var lsp_dock = LspDock.new(allocator, rpc);
     defer lsp_dock.delete();
     try app.docks.append(imutil.Dock.create(lsp_dock, "lsp"));
 

@@ -2,7 +2,7 @@ const std = @import("std");
 const imgui = @import("imgui");
 const imutil = @import("imutil");
 const Self = @This();
-const JsonRpc = @import("./JsonRpc.zig");
+const JsonRpc = @import("jsonrpc").JsonRpc;
 
 allocator: std.mem.Allocator,
 jsonrpc: *JsonRpc,
