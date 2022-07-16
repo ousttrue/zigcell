@@ -11,6 +11,7 @@ const JsonRpc = jsonrpc.JsonRpc;
 const Stdio = jsonrpc.Stdio;
 const Transport = jsonrpc.Transport;
 const LspDock = @import("./LspDock.zig");
+const lsp = @import("lsp");
 
 fn getProc(_: ?*glfw.GLFWwindow, name: [:0]const u8) ?*const anyopaque {
     return glfw.glfwGetProcAddress(@ptrCast([*:0]const u8, name));
@@ -79,9 +80,13 @@ pub fn main() anyerror!void {
         .writer = stdio.writer,
     };
 
+    var dispatcher = lsp.Dispatcher.init(gpa.allocator());
+    defer dispatcher.deinit();
+
     var rpc: *JsonRpc = try JsonRpc.new(
         gpa.allocator(),
         &transport,
+        &dispatcher,
     );
     defer rpc.delete();
 
