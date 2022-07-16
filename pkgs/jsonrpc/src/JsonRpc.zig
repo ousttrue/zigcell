@@ -2,12 +2,14 @@ const std = @import("std");
 const imutil = @import("imutil");
 const Self = @This();
 const Transport = @import("./Transport.zig");
+const Message = @import("./Message.zig");
 
 running: bool = true,
 allocator: std.mem.Allocator,
 transport: *Transport,
 thread: std.Thread,
-status: std.ArrayList(u8),
+last_message: ?Message = null,
+last_err: ?anyerror = null,
 
 pub fn new(allocator: std.mem.Allocator, transport: *Transport) !*Self {
     var self = try allocator.create(Self);
@@ -15,65 +17,40 @@ pub fn new(allocator: std.mem.Allocator, transport: *Transport) !*Self {
         .allocator = allocator,
         .transport = transport,
         .thread = try std.Thread.spawn(.{}, startReader, .{self}),
-        .status = std.ArrayList(u8).init(allocator),
     };
 
     return self;
 }
 
 pub fn delete(self: *Self) void {
-    self.status.deinit();
     self.running = false;
+    if (self.last_message) |*message| {
+        message.deinit();
+    }
     // self.thread.join();
     self.allocator.destroy(self);
 }
 
-pub fn getStatusText(self: *Self) []const u8 {
-    return self.status.items;
+fn dispatch(self: *Self, message: Message) void {
+    if (self.last_message) |*last_message| {
+        last_message.deinit();
+    }
+    self.last_err = null;
+    self.last_message = message;
 }
-
-fn pushStatus(self: *Self, buffer: []const u8) void {
-    self.status.appendSlice(buffer) catch unreachable;
-}
-
-const CONTENT_LENGTH = "Content-Length: ";
 
 fn startReader(self: *Self) void {
-
     while (self.running) {
         var arena = std.heap.ArenaAllocator.init(self.allocator);
         defer arena.deinit();
 
-        const allocator = arena.allocator();
-
-        // read or timeout
-        var content_length: usize = 0;
-        var i: u32 = 0;
-        var buffer: [1024]u8 = undefined;
-        while (true) : (i += 1) {
-            const len = self.transport.readUntilCRLF(&buffer) catch unreachable;
-            if (len == 0) {
-                break;
-            }
-            if (i == 0) {
-                // clear
-                self.status.resize(0) catch unreachable;
-            }
-            const slice = buffer[0..len];
-            self.pushStatus(slice);
-
-            // Content-Type: ...\r\n
-            // Content-Length: 1234\r\n
-            if (std.mem.startsWith(u8, slice, CONTENT_LENGTH)) {
-                content_length = std.fmt.parseInt(usize, slice[CONTENT_LENGTH.len..], 10) catch unreachable;
-            }
+        if (Message.init(arena.allocator(), self.transport)) |message| {
+            self.dispatch(message);
+        } else |err| {
+            // shutdown
+            self.last_message = null;
+            self.last_err = err;
+            break;
         }
-
-        // receive message
-        var body = allocator.alloc(u8, content_length) catch unreachable;
-        self.transport.read(body) catch unreachable;
-
-        self.pushStatus(body);
-        // dispatch
     }
 }

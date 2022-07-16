@@ -26,7 +26,12 @@ pub fn show(self: *Self, p_open: *bool) void {
     }
 
     if (imgui.Begin("jsonrpc", .{ .p_open = p_open })) {
-        imgui.TextUnformatted(imutil.localFormat("{s}", .{self.jsonrpc.getStatusText()}), .{});
+        if (self.jsonrpc.last_err) |err| {
+            imgui.TextUnformatted(imutil.localFormat("{s}", .{@errorName(err)}), .{});
+        }
+        if (self.jsonrpc.last_message) |message| {
+            imgui.TextUnformatted(imutil.localFormat("{}", .{message.content_length}), .{});
+        }
     }
     imgui.End();
 }
