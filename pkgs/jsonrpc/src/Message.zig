@@ -4,9 +4,11 @@ const Self = @This();
 const CONTENT_LENGTH = "Content-Length: ";
 const CONTENT_TYPE = "Content-Type: ";
 
+allocator: std.mem.Allocator,
 content_length: u32,
 content_type: [64]u8 = undefined,
-body: std.ArrayList(u8),
+body: []const u8,
+tree: std.json.ValueTree = null,
 
 pub const MessageError = error{
     UnknownHeader,
@@ -14,7 +16,7 @@ pub const MessageError = error{
 };
 
 /// read or timeout
-pub fn init(allocator: std.mem.Allocator, transport: *Transport) !Self {
+pub fn init(allocator: std.mem.Allocator, transport: *Transport, json_parser: *std.json.Parser) !Self {
     var content_length: u32 = 0;
     var content_type: [128]u8 = undefined;
     while (true) {
@@ -41,17 +43,21 @@ pub fn init(allocator: std.mem.Allocator, transport: *Transport) !Self {
         return MessageError.NoContentLength;
     }
 
-    var self = Self{
-        .content_length = content_length,
-        .body = std.ArrayList(u8).init(allocator),
-    };
-    errdefer self.deinit();
+    var body = try allocator.alloc(u8, content_length);
+    errdefer allocator.free(body);
+    try transport.read(body);
 
-    try self.body.resize(content_length);
-    try transport.read(self.body.items);
-    return self;
+    const tree = try json_parser.parse(body);
+
+    return Self{
+        .allocator = allocator,
+        .content_length = content_length,
+        .body = body,
+        .tree = tree,
+    };
 }
 
 pub fn deinit(self: *Self) void {
-    self.body.deinit();
+    self.tree.deinit();
+    self.allocator.free(self.body);
 }

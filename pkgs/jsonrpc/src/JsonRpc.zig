@@ -40,11 +40,12 @@ fn dispatch(self: *Self, message: Message) void {
 }
 
 fn startReader(self: *Self) void {
-    while (self.running) {
-        var arena = std.heap.ArenaAllocator.init(self.allocator);
-        defer arena.deinit();
+    var json_parser = std.json.Parser.init(self.allocator, false);
+    defer json_parser.deinit();
 
-        if (Message.init(arena.allocator(), self.transport)) |message| {
+    while (self.running) {
+        json_parser.reset();
+        if (Message.init(self.allocator, self.transport, &json_parser)) |message| {
             self.dispatch(message);
         } else |err| {
             // shutdown

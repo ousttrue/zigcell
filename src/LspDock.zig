@@ -20,6 +20,52 @@ pub fn delete(self: *Self) void {
     self.allocator.destroy(self);
 }
 
+fn show_json(self: Self, name: [*:0]const u8, json: std.json.Value) void {
+    const is_open = imgui.TreeNode(name);
+
+    switch (json) {
+        .Null => {
+            imgui.SameLine(.{});
+            imgui.TextUnformatted("null", .{});
+        },
+        .Bool => |value| {
+            imgui.SameLine(.{});
+            imgui.TextUnformatted(imutil.localFormat("{}", .{value}), .{});
+        },
+        .Integer => |value| {
+            imgui.SameLine(.{});
+            imgui.TextUnformatted(imutil.localFormat("{}", .{value}), .{});
+        },
+        .Float => |value| {
+            imgui.SameLine(.{});
+            imgui.TextUnformatted(imutil.localFormat("{}", .{value}), .{});
+        },
+        .NumberString, .String => |value| {
+            imgui.SameLine(.{});
+            imgui.TextUnformatted(imutil.localFormat("{s}", .{value}), .{});
+        },
+        .Array => |array| {
+            if (is_open) {
+                for (array.items) |child, i| {
+                    self.show_json(imutil.localFormat("{}", .{i}), child);
+                }
+            }
+        },
+        .Object => |object| {
+            if (is_open) {
+                for (object.keys()) |key| {
+                    const child = object.get(key) orelse unreachable;
+                    self.show_json(imutil.localFormat("{s}", .{key}), child);
+                }
+            }
+        },
+    }
+
+    if (is_open) {
+        imgui.TreePop();
+    }
+}
+
 pub fn show(self: *Self, p_open: *bool) void {
     if (!p_open.*) {
         return;
@@ -31,6 +77,7 @@ pub fn show(self: *Self, p_open: *bool) void {
         }
         if (self.jsonrpc.last_message) |message| {
             imgui.TextUnformatted(imutil.localFormat("{}", .{message.content_length}), .{});
+            self.show_json("root", message.tree.root);
         }
     }
     imgui.End();
