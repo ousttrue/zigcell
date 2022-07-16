@@ -4,7 +4,7 @@ const Self = @This();
 ptr: *anyopaque,
 readUntilCRLFFn: fn (ptr: *anyopaque, buffer: []u8) anyerror!usize,
 readFn: fn (ptr: *anyopaque, buffer: []u8) anyerror!void,
-writer: std.io.BufferedWriter(4096, std.fs.File.Writer),
+writeFn: fn (ptr: *anyopaque, buffer: []const u8) anyerror!void,
 
 pub fn readUntilCRLF(self: Self, buffer: []u8) !usize {
     return try self.readUntilCRLFFn(self.ptr, buffer);
@@ -14,13 +14,9 @@ pub fn read(self: Self, buffer: []u8) !void {
     try self.readFn(self.ptr, buffer);
 }
 
-pub fn sendAlloc(self: *Self, allocator: std.mem.Allocator, reqOrRes: anytype) void {
-    var arr = std.ArrayList(u8).init(allocator);
-    defer arr.deinit();
-    std.json.stringify(reqOrRes, .{}, arr.writer()) catch @panic("stringify");
-
-    const stdout_stream = self.writer.writer();
-    stdout_stream.print("Content-Length: {}\r\n\r\n", .{arr.items.len}) catch @panic("send");
-    stdout_stream.writeAll(arr.items) catch @panic("send");
-    self.writer.flush() catch @panic("send");
+pub fn send(self: *Self, buffer: []const u8) !void {
+    var tmp: [128]u8 = undefined;
+    const slice = try std.fmt.bufPrint(&tmp, "Content-Length: {}\r\n\r\n", .{buffer.len});
+    try self.writeFn(self.ptr, slice);
+    try self.writeFn(self.ptr, buffer);
 }

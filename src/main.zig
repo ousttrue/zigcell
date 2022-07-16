@@ -77,7 +77,7 @@ pub fn main() anyerror!void {
         .ptr = &stdio,
         .readUntilCRLFFn = imutil.TypeEraser(Stdio, "readUntilCRLF").call,
         .readFn = imutil.TypeEraser(Stdio, "read").call,
-        .writer = stdio.writer,
+        .writeFn = imutil.TypeEraser(Stdio, "write").call,
     };
 
     var dispatcher = lsp.Dispatcher.init(gpa.allocator());

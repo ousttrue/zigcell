@@ -2,7 +2,7 @@ const std = @import("std");
 const Self = @This();
 
 reader: std.fs.File.Reader,
-writer: std.io.BufferedWriter(4096, std.fs.File.Writer),
+writer: std.fs.File.Writer,
 
 pub const Error = error{
     NoCR,
@@ -11,7 +11,7 @@ pub const Error = error{
 pub fn init() Self {
     return Self{
         .reader = std.io.getStdIn().reader(),
-        .writer = std.io.bufferedWriter(std.io.getStdOut().writer()),
+        .writer = std.io.getStdOut().writer(),
     };
 }
 
@@ -26,4 +26,9 @@ pub fn readUntilCRLF(self: *Self, buffer: []u8) !usize {
 
 pub fn read(self: *Self, buffer: []u8) !void {
     try self.reader.readNoEof(buffer);
+}
+
+pub fn write(self: *Self, buffer: []const u8) !void {
+    const size = try self.writer.write(buffer);
+    std.debug.assert(size == buffer.len);
 }

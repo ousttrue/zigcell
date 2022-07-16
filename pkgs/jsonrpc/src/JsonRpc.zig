@@ -1,6 +1,6 @@
 const std = @import("std");
 const imutil = @import("imutil");
-const lsp = @import("lsp");
+const Dispatcher = @import("lsp").Dispatcher;
 const Self = @This();
 const Transport = @import("./Transport.zig");
 const Input = @import("./Input.zig");
@@ -16,7 +16,7 @@ thread: std.Thread,
 last_input: ?Input = null,
 last_err: ?anyerror = null,
 
-pub fn new(allocator: std.mem.Allocator, transport: *Transport, dispatcher: *lsp.Dispatcher) !*Self {
+pub fn new(allocator: std.mem.Allocator, transport: *Transport, dispatcher: *Dispatcher) !*Self {
     var self = try allocator.create(Self);
     self.* = Self{
         .allocator = allocator,
@@ -35,7 +35,7 @@ pub fn delete(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-fn startReader(self: *Self, transport: *Transport, dispatcher: *lsp.Dispatcher) void {
+fn startReader(self: *Self, transport: *Transport, dispatcher: *Dispatcher) void {
     var json_parser = std.json.Parser.init(self.allocator, false);
     defer json_parser.deinit();
 
@@ -54,8 +54,12 @@ fn startReader(self: *Self, transport: *Transport, dispatcher: *lsp.Dispatcher) 
             if (input.getId()) |id| {
                 if (input.getMethod()) |method| {
                     // request
-                    const response = dispatcher.dispatchRequest(id, method, input.getParams());
-                    transport.sendAlloc(self.allocator, response);
+                    const bytes = dispatcher.dispatchRequest(id, method, input.getParams());
+                    transport.send(bytes) catch |err|
+                    {
+                        self.last_err = err;
+                        break;
+                    };
                 } else {
                     // response
                     @panic("jsonrpc response is not implemented(not send request)");
