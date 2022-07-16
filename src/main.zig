@@ -76,6 +76,7 @@ pub fn main() anyerror!void {
         .ptr = &stdio,
         .readUntilCRLFFn = imutil.TypeEraser(Stdio, "readUntilCRLF").call,
         .readFn = imutil.TypeEraser(Stdio, "read").call,
+        .writer = stdio.writer,
     };
 
     var rpc: *JsonRpc = try JsonRpc.new(

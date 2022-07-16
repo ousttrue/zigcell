@@ -2,15 +2,16 @@ const std = @import("std");
 const Self = @This();
 
 reader: std.fs.File.Reader,
+writer: std.io.BufferedWriter(4096, std.fs.File.Writer),
 
-pub const Error = error
-{
+pub const Error = error{
     NoCR,
 };
 
 pub fn init() Self {
     return Self{
         .reader = std.io.getStdIn().reader(),
+        .writer = std.io.bufferedWriter(std.io.getStdOut().writer()),
     };
 }
 
