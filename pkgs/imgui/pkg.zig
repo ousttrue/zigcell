@@ -32,7 +32,7 @@ const SOURCES = [_][]const u8{
 pub fn addTo(allocator: std.mem.Allocator, exe: *LibExeObjStep, relativePath: []const u8) Pkg {
     const pkg = Pkg{
         .name = "imgui",
-        .path = FileSource{ .path = concat(allocator, relativePath, "/src/main.zig") },
+        .source = FileSource{ .path = concat(allocator, relativePath, "/src/main.zig") },
     };
     exe.addPackage(pkg);
     exe.addIncludeDir(concat(allocator, relativePath, "/_external/imgui"));

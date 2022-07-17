@@ -6,7 +6,8 @@ pub fn main() anyerror!void {
     const stream = try std.net.tcpConnectToAddress(address);
     defer stream.close();
     var tcp = jsonrpc.Tcp.init(stream);
-    var transport = tcp.transport();
+    var transport = tcp.newTransport(std.heap.page_allocator);
+    defer transport.delete();
     const data =
         \\{
         \\}

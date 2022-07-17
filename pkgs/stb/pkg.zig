@@ -21,7 +21,7 @@ pub fn addTo(allocator: std.mem.Allocator, exe: *LibExeObjStep, relativePath: []
     // _external/glfw/_external/glfw/src/CMakeLists.txt
     const pkg = Pkg{
         .name = "stb",
-        .path = FileSource{ .path = concat(allocator, relativePath, "/src/main.zig") },
+        .source = FileSource{ .path = concat(allocator, relativePath, "/src/main.zig") },
     };
     exe.addPackage(pkg);
     exe.addIncludeDir(concat(allocator, relativePath, "/_external"));

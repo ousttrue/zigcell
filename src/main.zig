@@ -22,14 +22,14 @@ pub const LspClient = struct {
     const Self = @This();
 
     tcp: jsonrpc.Tcp,
-    transport: jsonrpc.Transport = undefined,
+    transport: *jsonrpc.Transport = undefined,
     rpc: *JsonRpc = undefined,
 
     pub fn init(allocator: std.mem.Allocator, conn: std.net.StreamServer.Connection, dispatcher: *lsp.Dispatcher) Self {
         var self = Self{
             .tcp = jsonrpc.Tcp.init(conn.stream),
         };
-        self.transport = self.tcp.transport();
+        self.transport = self.tcp.newTransport(allocator);
         self.rpc = JsonRpc.new(
             allocator,
             self.transport,
@@ -41,15 +41,17 @@ pub const LspClient = struct {
     pub fn deinit(self: *Self) void {
         self.rpc.delete();
         self.tcp.deinit();
+        self.transport.delete();
     }
 };
 
-fn client_ping() !void {
+fn client_ping(allocator: std.mem.Allocator) !void {
     const address = std.net.Address.parseIp("127.0.0.1", 51764) catch unreachable;
     const stream = try std.net.tcpConnectToAddress(address);
     defer stream.close();
     var tcp = jsonrpc.Tcp.init(stream);
-    var transport = tcp.transport();
+    var transport = tcp.newTransport(allocator);
+    defer transport.delete();
     const data =
         \\{
         \\}
@@ -137,7 +139,7 @@ pub fn main() anyerror!void {
 
     var client: ?LspClient = null;
 
-    const ping = try std.Thread.spawn(.{}, client_ping, .{});
+    const ping = try std.Thread.spawn(.{}, client_ping, .{allocator});
     _ = ping;
 
     // Loop until the user closes the window

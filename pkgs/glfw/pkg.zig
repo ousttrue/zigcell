@@ -21,7 +21,7 @@ pub fn addTo(allocator: std.mem.Allocator, exe: *LibExeObjStep, relativePath: []
     // _external/glfw/_external/glfw/src/CMakeLists.txt
     const pkg = Pkg{
         .name = "glfw",
-        .path = FileSource{ .path = concat(allocator, relativePath, "/src/main.zig") },
+        .source = FileSource{ .path = concat(allocator, relativePath, "/src/main.zig") },
     };
     exe.addPackage(pkg);
     exe.defineCMacro("_GLFW_WIN32", "1");

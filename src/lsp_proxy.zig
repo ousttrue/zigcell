@@ -2,7 +2,7 @@ const std = @import("std");
 const tcp_server = @import("./tcp_server.zig");
 const jsonrpc = @import("jsonrpc");
 
-fn connect(allocator: std.mem.Allocator, src: jsonrpc.Transport, dst: jsonrpc.Transport) void {
+fn connect(allocator: std.mem.Allocator, src: *jsonrpc.Transport, dst: *jsonrpc.Transport) void {
     _ = dst;
     var json_parser = std.json.Parser.init(allocator, false);
     defer json_parser.deinit();
@@ -34,15 +34,19 @@ pub fn main() anyerror!void {
 
     // stdio
     var stdio = jsonrpc.Stdio.init();
+    var stdio_transport = stdio.newTransport(std.heap.page_allocator);
+    defer stdio_transport.delete();
 
     // connect to server
     const stream = try std.net.tcpConnectToAddress(tcp_server.address);
     defer stream.close();
     var tcp = jsonrpc.Tcp.init(stream);
+    var tcp_transport = tcp.newTransport(std.heap.page_allocator);
+    defer tcp_transport.delete();
 
     // bind stdio with tcp socket
-    var cs = try std.Thread.spawn(.{}, connect, .{ gpa0.allocator(), stdio.transport(), tcp.transport() });
-    var sc = try std.Thread.spawn(.{}, connect, .{ gpa1.allocator(), tcp.transport(), stdio.transport() });
+    var cs = try std.Thread.spawn(.{}, connect, .{ gpa0.allocator(), stdio_transport, tcp_transport });
+    var sc = try std.Thread.spawn(.{}, connect, .{ gpa1.allocator(), tcp_transport, stdio_transport });
     cs.join();
     sc.join();
 }

@@ -16,7 +16,7 @@ thread: std.Thread,
 last_input: ?Input = null,
 last_err: ?Transport.Error = null,
 
-pub fn new(allocator: std.mem.Allocator, transport: Transport, dispatcher: *Dispatcher) *Self {
+pub fn new(allocator: std.mem.Allocator, transport: *Transport, dispatcher: *Dispatcher) *Self {
     var self = allocator.create(Self) catch unreachable;
     self.* = Self{
         .allocator = allocator,
@@ -51,7 +51,7 @@ fn setError(self: *Self, err: Transport.Error) void {
     self.last_err = err;
 }
 
-fn startReader(self: *Self, transport: Transport, dispatcher: *Dispatcher) void {
+fn startReader(self: *Self, transport: *Transport, dispatcher: *Dispatcher) void {
     var json_parser = std.json.Parser.init(self.allocator, false);
     defer json_parser.deinit();
 
@@ -77,7 +77,7 @@ fn startReader(self: *Self, transport: Transport, dispatcher: *Dispatcher) void 
     std.log.info("end", .{});
 }
 
-fn processInput(self: *Self, transport: Transport, dispatcher: *Dispatcher, input: Input) void {
+fn processInput(self: *Self, transport: *Transport, dispatcher: *Dispatcher, input: Input) void {
     self.setInput(input);
 
     // disptach

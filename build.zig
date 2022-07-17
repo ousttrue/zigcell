@@ -5,28 +5,28 @@ const imgui = @import("./pkgs/imgui/pkg.zig");
 
 const gl_pkg = std.build.Pkg{
     .name = "gl",
-    .path = std.build.FileSource{ .path = "pkgs/zig-opengl/exports/gl_4v6.zig" },
+    .source = std.build.FileSource{ .path = "pkgs/zig-opengl/exports/gl_4v6.zig" },
 };
 
 const glo_pkg = std.build.Pkg{
     .name = "glo",
-    .path = std.build.FileSource{ .path = "pkgs/glo/src/main.zig" },
+    .source = std.build.FileSource{ .path = "pkgs/glo/src/main.zig" },
     .dependencies = &.{gl_pkg},
 };
 
 const util_pkg = std.build.Pkg{
     .name = "util",
-    .path = std.build.FileSource{ .path = "pkgs/util/src/main.zig" },
+    .source = std.build.FileSource{ .path = "pkgs/util/src/main.zig" },
     .dependencies = &.{},
 };
 const lsp_pkg = std.build.Pkg{
     .name = "lsp",
-    .path = std.build.FileSource{ .path = "pkgs/lsp/src/main.zig" },
+    .source = std.build.FileSource{ .path = "pkgs/lsp/src/main.zig" },
     .dependencies = &.{util_pkg},
 };
 const jsonrpc_pkg = std.build.Pkg{
     .name = "jsonrpc",
-    .path = std.build.FileSource{ .path = "pkgs/jsonrpc/src/main.zig" },
+    .source = std.build.FileSource{ .path = "pkgs/jsonrpc/src/main.zig" },
     .dependencies = &.{ lsp_pkg, util_pkg },
 };
 
@@ -43,7 +43,7 @@ fn main_exe(b: *std.build.Builder, allocator: std.mem.Allocator) *std.build.LibE
     const imgui_pkg = imgui.addTo(allocator, exe, "pkgs/imgui");
     const imutil_pkg = std.build.Pkg{
         .name = "imutil",
-        .path = std.build.FileSource{ .path = "pkgs/imutil/src/main.zig" },
+        .source = std.build.FileSource{ .path = "pkgs/imutil/src/main.zig" },
         .dependencies = &.{ gl_pkg, glo_pkg, imgui_pkg, util_pkg },
     };
 
