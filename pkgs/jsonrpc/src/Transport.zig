@@ -56,7 +56,7 @@ pub fn readNextAlloc(self: *Self, allocator: std.mem.Allocator) Error![]const u8
     while (true) {
         var line: [128]u8 = undefined;
         var pos: usize = 0;
-        while (true) {
+        while (true) : (pos += 1) {
             line[pos] = self.readByte() catch |err|
                 {
                 std.log.err("{s}", .{@errorName(err)});
