@@ -16,7 +16,7 @@ thread: std.Thread,
 last_input: ?Input = null,
 last_err: ?anyerror = null,
 
-pub fn new(allocator: std.mem.Allocator, transport: *Transport, dispatcher: *Dispatcher) *Self {
+pub fn new(allocator: std.mem.Allocator, transport: Transport, dispatcher: *Dispatcher) *Self {
     var self = allocator.create(Self) catch unreachable;
     self.* = Self{
         .allocator = allocator,
@@ -35,7 +35,7 @@ pub fn delete(self: *Self) void {
     self.allocator.destroy(self);
 }
 
-fn startReader(self: *Self, transport: *Transport, dispatcher: *Dispatcher) void {
+fn startReader(self: *Self, transport: Transport, dispatcher: *Dispatcher) void {
     var json_parser = std.json.Parser.init(self.allocator, false);
     defer json_parser.deinit();
 

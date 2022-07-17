@@ -16,7 +16,7 @@ pub const MessageError = error{
 };
 
 /// read or timeout
-pub fn init(allocator: std.mem.Allocator, transport: *Transport, json_parser: *std.json.Parser) !Self {
+pub fn init(allocator: std.mem.Allocator, transport: Transport, json_parser: *std.json.Parser) !Self {
     var content_length: u32 = 0;
     var content_type: [128]u8 = undefined;
     while (true) {

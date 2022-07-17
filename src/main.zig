@@ -32,7 +32,7 @@ pub const LspClient = struct {
         self.transport = self.tcp.transport();
         self.rpc = JsonRpc.new(
             allocator,
-            &self.transport,
+            self.transport,
             dispatcher,
         );
         return self;

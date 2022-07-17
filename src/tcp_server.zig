@@ -1,9 +1,10 @@
 const std = @import("std");
 pub const LISTEN_PORT: u16 = 51764;
 
+pub const address = std.net.Address.parseIp("127.0.0.1", LISTEN_PORT) catch unreachable;
+
 pub fn startServer(alive: *bool, server: *std.net.StreamServer, queue: *std.atomic.Queue(std.net.StreamServer.Connection)) void {
-    const addr = std.net.Address.parseIp("127.0.0.1", LISTEN_PORT) catch unreachable;
-    server.listen(addr) catch unreachable;
+    server.listen(address) catch unreachable;
 
     const STATIC = struct {
         var node: std.atomic.Queue(std.net.StreamServer.Connection).Node = undefined;

@@ -1,6 +1,6 @@
 const std = @import("std");
-const Transport = @import("./Transport.zig");
 const TypeEraser = @import("util").TypeEraser;
+const Transport = @import("./Transport.zig");
 const Self = @This();
 
 pub const Error = error{

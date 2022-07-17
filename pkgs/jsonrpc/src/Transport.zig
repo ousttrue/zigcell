@@ -14,7 +14,7 @@ pub fn read(self: Self, buffer: []u8) !void {
     try self.readFn(self.ptr, buffer);
 }
 
-pub fn send(self: *Self, buffer: []const u8) !void {
+pub fn send(self: Self, buffer: []const u8) !void {
     var tmp: [128]u8 = undefined;
     const slice = try std.fmt.bufPrint(&tmp, "Content-Length: {}\r\n\r\n", .{buffer.len});
     try self.writeFn(self.ptr, slice);

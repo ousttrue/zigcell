@@ -73,7 +73,7 @@ pub fn show(self: *Self, p_open: *bool) void {
     if (imgui.Begin("jsonrpc", .{ .p_open = p_open })) {
         if (self.rpc) |rpc| {
             if (rpc.last_err) |err| {
-                imgui.TextUnformatted(imutil.localFormat("{s}", .{@errorName(err)}), .{});
+                imgui.TextUnformatted(imutil.localFormat("{s}.{s}", .{ @typeName(@TypeOf(err)), @errorName(err) }), .{});
             }
             if (rpc.last_input) |input| {
                 imgui.TextUnformatted(imutil.localFormat("{}", .{input.content_length}), .{});
