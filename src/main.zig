@@ -12,31 +12,10 @@ const Transport = jsonrpc.Transport;
 const LspDock = @import("./LspDock.zig");
 const lsp = @import("lsp");
 const LanguageServer = @import("./LanguageServer.zig");
-const LISTEN_PORT: u16 = 51764;
+const tcp_server = @import("./tcp_server.zig");
 
 fn getProc(_: ?*glfw.GLFWwindow, name: [:0]const u8) ?*const anyopaque {
     return glfw.glfwGetProcAddress(@ptrCast([*:0]const u8, name));
-}
-
-var node: std.atomic.Queue(std.net.StreamServer.Connection).Node = undefined;
-
-fn startServer(alive: *bool, server: *std.net.StreamServer, queue: *std.atomic.Queue(std.net.StreamServer.Connection)) void {
-    const addr = std.net.Address.parseIp("127.0.0.1", LISTEN_PORT) catch unreachable;
-    server.listen(addr) catch unreachable;
-
-    while (alive.*) {
-        if (server.accept()) |conn| {
-            node = .{
-                .data = conn,
-                .next = undefined,
-                .prev = undefined,
-            };
-            queue.put(&node);
-        } else |_| {                
-            // std.log.err("{s}", @errorName(err));
-            break;
-        }
-    }
 }
 
 pub const LspClient = struct {
@@ -135,7 +114,7 @@ pub fn main() anyerror!void {
     // defer server.deinit();
     var is_alive = true;
     var queue = std.atomic.Queue(std.net.StreamServer.Connection).init();
-    const thread = try std.Thread.spawn(.{}, startServer, .{ &is_alive, &server, &queue });
+    const thread = try std.Thread.spawn(.{}, tcp_server.startServer, .{ &is_alive, &server, &queue });
     _ = thread;
     // defer thread.join();
 
