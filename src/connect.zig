@@ -12,4 +12,8 @@ pub fn main() anyerror!void {
         \\}
     ;
     try transport.send(data);
+
+    if (transport.readNextAlloc(std.testing.allocator)) |body| {
+        _ = body;
+    } else |_| {}
 }

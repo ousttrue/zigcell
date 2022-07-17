@@ -44,6 +44,23 @@ pub const LspClient = struct {
     }
 };
 
+fn client_ping() !void {
+    const address = std.net.Address.parseIp("127.0.0.1", 51764) catch unreachable;
+    const stream = try std.net.tcpConnectToAddress(address);
+    defer stream.close();
+    var tcp = jsonrpc.Tcp.init(stream);
+    var transport = tcp.transport();
+    const data =
+        \\{
+        \\}
+    ;
+    try transport.send(data);
+
+    if (transport.readNextAlloc(std.testing.allocator)) |body| {
+        _ = body;
+    } else |_| {}
+}
+
 pub fn main() anyerror!void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
@@ -119,6 +136,9 @@ pub fn main() anyerror!void {
     // defer thread.join();
 
     var client: ?LspClient = null;
+
+    const ping = try std.Thread.spawn(.{}, client_ping, .{});
+    _ = ping;
 
     // Loop until the user closes the window
     const io = imgui.GetIO();

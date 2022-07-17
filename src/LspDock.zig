@@ -76,7 +76,7 @@ pub fn show(self: *Self, p_open: *bool) void {
                 imgui.TextUnformatted(imutil.localFormat("{s}.{s}", .{ @typeName(@TypeOf(err)), @errorName(err) }), .{});
             }
             if (rpc.last_input) |input| {
-                imgui.TextUnformatted(imutil.localFormat("{}", .{input.content_length}), .{});
+                imgui.TextUnformatted(imutil.localFormat("{}", .{input.content.len}), .{});
                 self.show_json("root", input.tree.root);
             }
         }

@@ -12,6 +12,8 @@ pub fn startServer(alive: *bool, server: *std.net.StreamServer, queue: *std.atom
 
     while (alive.*) {
         if (server.accept()) |conn| {
+            std.log.info("connected", .{});
+
             STATIC.node = .{
                 .data = conn,
                 .next = undefined,

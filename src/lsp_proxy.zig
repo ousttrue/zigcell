@@ -8,11 +8,17 @@ fn connect(allocator: std.mem.Allocator, src: jsonrpc.Transport, dst: jsonrpc.Tr
     defer json_parser.deinit();
 
     while (true) {
-        json_parser.reset();
-        if (jsonrpc.Input.init(allocator, src, &json_parser)) |*input| {
-            // defer input.deinit();
-            std.log.err("input: {}", .{input.content_length});
-            dst.send(input.body) catch @panic("send");
+        if (src.readNextAlloc(allocator)) |content| {
+            json_parser.reset();
+            if (json_parser.parse(content)) |tree| {
+                var input = jsonrpc.Input.init(allocator, content, tree);
+                defer input.deinit();
+                std.log.err("input: {}", .{input.content.len});
+                dst.send(input.content) catch @panic("send");
+            } else |err| {
+                std.log.err("{s}", .{@errorName(err)});
+                allocator.free(content);
+            }
         } else |err| {
             std.log.err("{s}", .{@errorName(err)});
             @panic("input");
