@@ -64,6 +64,21 @@ pub fn getChildren(children: []u32, tree: std.zig.Ast, idx: u32) []u32 {
             break :blk children[0..1];
         },
         .string_literal => children[0..0],
+        .block, .block_two_semicolon => blk: {
+            if (node_data.lhs == 0) {
+                break :blk children[0..0];
+            } else {
+                if (node_data.rhs == 0) {
+                    children[0] = node_data.lhs;
+                    break :blk children[0..1];
+                } else {
+                    for (tree.extra_data[node_data.lhs..node_data.rhs]) |child, i| {
+                        children[i] = child;
+                    }
+                    break :blk children[0 .. node_data.rhs - node_data.lhs];
+                }
+            }
+        },
         else => blk: {
             // std.debug.print("unknown node: {s}\n", .{@tagName(node_tag)});
             break :blk &.{};

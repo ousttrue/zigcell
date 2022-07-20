@@ -39,6 +39,7 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
 
     _ = imgui.TableNextColumn();
     imgui.SetNextItemOpen(if (self.selected_node) |selected| ast.findAncestor(selected, idx) else false, .{});
+    // imgui.SetNextItemOpen(true, .{ .cond = @enumToInt(imgui.ImGuiCond._FirstUseEver) });
     const opend = imgui.TreeNodeEx(imutil.localFormat("{}", .{idx}), .{ .flags = flags });
 
     // 1

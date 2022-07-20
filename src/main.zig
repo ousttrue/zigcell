@@ -115,11 +115,11 @@ pub fn main() anyerror!void {
     defer lsp_dock.delete();
     try app.docks.append(imutil.Dock.create(lsp_dock, "lsp"));
 
-    // if (std.os.argv.len > 1) {
-    //     const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
-    //     defer allocator.free(arg1);
-    //     try screen.open(arg1);
-    // }
+    if (std.os.argv.len > 1) {
+        const arg1 = try std.fmt.allocPrint(allocator, "{s}", .{std.os.argv[1]});
+        defer allocator.free(arg1);
+        try screen.open(arg1);
+    }
 
     try screen.loadFont("C:/Windows/Fonts/consola.ttf", 30, 1024);
 
@@ -129,27 +129,25 @@ pub fn main() anyerror!void {
     var ls = LanguageServer{};
     dispatcher.registerRequest(&ls, "initialize");
 
-    var server = std.net.StreamServer.init(.{});
-    // defer server.deinit();
-    var is_alive = true;
-    var queue = std.atomic.Queue(std.net.StreamServer.Connection).init();
-    const thread = try std.Thread.spawn(.{}, tcp_server.startServer, .{ &is_alive, &server, &queue });
-    _ = thread;
+    // var server = std.net.StreamServer.init(.{});
+    // // defer server.deinit();
+    // var is_alive = true;
+    // var queue = std.atomic.Queue(std.net.StreamServer.Connection).init();
+    // const thread = try std.Thread.spawn(.{}, tcp_server.startServer, .{ &is_alive, &server, &queue });
+    // _ = thread;
     // defer thread.join();
-
-    var client: ?LspClient = null;
-
-    const ping = try std.Thread.spawn(.{}, client_ping, .{allocator});
-    _ = ping;
+    // var client: ?LspClient = null;
+    // const ping = try std.Thread.spawn(.{}, client_ping, .{allocator});
+    // _ = ping;
 
     // Loop until the user closes the window
     const io = imgui.GetIO();
     while (glfw.glfwWindowShouldClose(window) == 0) {
-        if (queue.get()) |item| {
-            var new_client = LspClient.init(gpa.allocator(), item.data, &dispatcher);
-            lsp_dock.rpc = new_client.rpc;
-            client = new_client;
-        }
+        // if (queue.get()) |item| {
+        //     var new_client = LspClient.init(gpa.allocator(), item.data, &dispatcher);
+        //     lsp_dock.rpc = new_client.rpc;
+        //     client = new_client;
+        // }
 
         // Poll for and process events
         glfw.glfwPollEvents();
@@ -170,6 +168,6 @@ pub fn main() anyerror!void {
         glfw.glfwSwapBuffers(window);
     }
 
-    is_alive = false;
+    // is_alive = false;
     // server.close();
 }
