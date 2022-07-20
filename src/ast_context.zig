@@ -19,7 +19,7 @@ fn getAllTokens(allocator: std.mem.Allocator, source: [:0]const u8) std.ArrayLis
     return tokens;
 }
 
-pub fn getChildren(children: *std.ArrayList(u32), tree: *std.zig.Ast, idx: u32) void {
+pub fn getChildren(children: *std.ArrayList(u32), tree: *const std.zig.Ast, idx: u32) void {
     const tag = tree.nodes.items(.tag);
     const node_tag = tag[idx];
     const data = tree.nodes.items(.data);
