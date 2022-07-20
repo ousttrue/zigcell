@@ -31,9 +31,10 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
     // | @enumToInt(imgui.ImGuiTreeNodeFlags._SpanAvailWidth)
     // | @enumToInt(imgui.ImGuiTreeNodeFlags._DefaultOpen)
     ;
-    var _children: [64]u32 = undefined;
-    const children = ast_context.getChildren(&_children, ast.tree, idx);
-    if (children.len == 0) {
+    var children = std.ArrayList(u32).init(ast.allocator);
+    defer children.deinit();
+    ast_context.getChildren(&children, ast.tree, idx);
+    if (children.items.len == 0) {
         flags |= @enumToInt(imgui.ImGuiTreeNodeFlags._Leaf);
     }
 
@@ -63,7 +64,7 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
 
     // children
     if (opend) {
-        for (children) |child| {
+        for (children.items) |child| {
             self.showTree(ast, child);
         }
         imgui.TreePop();
