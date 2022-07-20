@@ -10,7 +10,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/zig-out/bin/zigcell.exe",
             "args": [
-                "src/main.zig"
+                // "src/main.zig"
+                "C:/Users/ousttrue/ghq/github.com/ousttrue/zls/pkgs/workspace/src/AstContext.zig",
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

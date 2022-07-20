@@ -19,7 +19,7 @@ fn getAllTokens(allocator: std.mem.Allocator, source: [:0]const u8) std.ArrayLis
     return tokens;
 }
 
-pub fn getChildren(children: *std.ArrayList(u32), tree: std.zig.Ast, idx: u32) void {
+pub fn getChildren(children: *std.ArrayList(u32), tree: *std.zig.Ast, idx: u32) void {
     const tag = tree.nodes.items(.tag);
     const node_tag = tag[idx];
     const data = tree.nodes.items(.data);
@@ -53,20 +53,20 @@ pub fn getChildren(children: *std.ArrayList(u32), tree: std.zig.Ast, idx: u32) v
         .field_access => {
             children.append(node_data.lhs) catch unreachable;
         },
-        .string_literal => { 
+        .string_literal => {
             // leaf. no children
         },
-        .block, .block_two_semicolon => {
-            if (node_data.lhs == 0) {
-                // leaf. no children
-            } else {
-                if (node_data.rhs == 0) {
-                    children.append(node_data.lhs) catch unreachable;
-                } else {
-                    for (tree.extra_data[node_data.lhs..node_data.rhs]) |child| {
-                        children.append(child) catch unreachable;
-                    }
-                }
+        .block, .block_semicolon => {
+            for (tree.extra_data[node_data.lhs..node_data.rhs]) |child| {
+                children.append(child) catch unreachable;
+            }
+        },
+        .block_two, .block_two_semicolon => {
+            if (node_data.lhs != 0) {
+                children.append(node_data.lhs) catch unreachable;
+            }
+            if (node_data.rhs != 0) {
+                children.append(node_data.rhs) catch unreachable;
             }
         },
         else => {
@@ -88,7 +88,7 @@ pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
 
     var children = std.ArrayList(u32).init(context.allocator);
     defer children.deinit();
-    getChildren(&children, context.tree, idx);
+    getChildren(&children, &context.tree, idx);
     for (children.items) |child| {
         stack.append(child) catch unreachable;
         traverse(context, stack);
