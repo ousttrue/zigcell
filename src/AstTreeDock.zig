@@ -2,6 +2,7 @@ const std = @import("std");
 const imgui = @import("imgui");
 const imutil = @import("imutil");
 const ast_context = @import("./ast_context.zig");
+const ast_get_children = @import("./ast_get_children.zig");
 const AstContext = ast_context.AstContext;
 const Screen = @import("./screen.zig").Screen;
 const Self = @This();
@@ -33,7 +34,7 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
     ;
     var children = std.ArrayList(u32).init(ast.allocator);
     defer children.deinit();
-    ast_context.getChildren(&children, ast.tree, idx);
+    ast_get_children.getChildren(&children, &ast.tree, idx);
     if (children.items.len == 0) {
         flags |= @enumToInt(imgui.ImGuiTreeNodeFlags._Leaf);
     }
