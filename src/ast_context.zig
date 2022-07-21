@@ -35,6 +35,10 @@ pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
     defer children.deinit();
     getChildren(&children, &context.tree, idx);
     for (children.items) |child| {
+        if(child==0)
+        {
+            continue;
+        }
         stack.append(child) catch unreachable;
         traverse(context, stack);
         _ = stack.pop();
