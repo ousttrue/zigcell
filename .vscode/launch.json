@@ -11,7 +11,8 @@
             "program": "${workspaceFolder}/zig-out/bin/zigcell.exe",
             "args": [
                 // "src/main.zig"
-                "C:/Users/ousttrue/ghq/github.com/ousttrue/zls/pkgs/workspace/src/AstContext.zig",
+                // "C:/Users/ousttrue/ghq/github.com/ousttrue/zls/pkgs/workspace/src/AstContext.zig",
+                "C:/Users/ousttrue/ghq/github.com/ousttrue/zls/pkgs/workspace/src/hover_util.zig",
             ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
