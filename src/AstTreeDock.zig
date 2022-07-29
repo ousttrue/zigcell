@@ -2,7 +2,7 @@ const std = @import("std");
 const imgui = @import("imgui");
 const imutil = @import("imutil");
 const ast_context = @import("./ast_context.zig");
-const ast_get_children = @import("./ast_get_children.zig");
+const AstGetChildren = @import("./AstGetChildren.zig");
 const AstContext = ast_context.AstContext;
 const Screen = @import("./screen.zig").Screen;
 const Self = @This();
@@ -32,10 +32,10 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
     // | @enumToInt(imgui.ImGuiTreeNodeFlags._SpanAvailWidth)
     // | @enumToInt(imgui.ImGuiTreeNodeFlags._DefaultOpen)
     ;
-    var children = std.ArrayList(u32).init(ast.allocator);
-    defer children.deinit();
-    ast_get_children.getChildren(&children, &ast.tree, idx);
-    if (children.items.len == 0) {
+    var get_children = AstGetChildren.init(self.allocator);
+    defer get_children.deinit();
+    _ = get_children.getChildren(&ast.tree, idx);
+    if (get_children.children.items.len == 0) {
         flags |= @enumToInt(imgui.ImGuiTreeNodeFlags._Leaf);
     }
 
@@ -65,7 +65,7 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
 
     // children
     if (opend) {
-        for (children.items) |child| {
+        for (get_children.children.items) |child| {
             self.showTree(ast, child);
         }
         imgui.TreePop();
