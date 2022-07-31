@@ -177,10 +177,12 @@ fn getChildren(
 pub const ChildrenArray = struct {
     array: std.ArrayList(u32),
 
-    pub fn init(allocator: std.mem.Allocator) ChildrenArray {
-        return .{
+    pub fn init(allocator: std.mem.Allocator, children: NodeChildren) ChildrenArray {
+        var self = ChildrenArray{
             .array = std.ArrayList(u32).init(allocator),
         };
+        _ = self.toArray(children);
+        return self;
     }
 
     pub fn deinit(self: @This()) void {
@@ -201,10 +203,9 @@ pub const ChildrenArray = struct {
             .Struct => |s| {
                 inline for (s.fields) |field| {
                     if (field.field_type == Ast.Node.Index) {
-                        if(!std.mem.endsWith(u8, field.name, "_token"))
-                        {
+                        if (!std.mem.endsWith(u8, field.name, "_token")) {
                             self.appendIfNotZero(@field(children, field.name));
-                        }                        
+                        }
                     } else if (field.field_type == []const Ast.Node.Index) {
                         for (@field(children, field.name)) |value| {
                             self.appendIfNotZero(value);
@@ -218,7 +219,7 @@ pub const ChildrenArray = struct {
         }
     }
 
-    pub fn toArray(self: *@This(), children: NodeChildren) []const u32 {
+    fn toArray(self: *@This(), children: NodeChildren) []const u32 {
         switch (children) {
             .none => {},
             .one => |single| {
