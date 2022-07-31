@@ -195,7 +195,7 @@ pub const ChildrenArray = struct {
         }
     }
 
-    pub fn addChildren(self: *@This(), children: anytype) void {
+    fn addChildren(self: *@This(), children: anytype) void {
         _ = self;
         const T = @TypeOf(children);
         const info = @typeInfo(T);
