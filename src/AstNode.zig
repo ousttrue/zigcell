@@ -195,9 +195,8 @@ pub const ChildrenArray = struct {
         }
     }
 
-    fn addChildren(self: *@This(), children: anytype) void {
+    fn addChildren(self: *@This(), comptime T: type, children: T) void {
         _ = self;
-        const T = @TypeOf(children);
         const info = @typeInfo(T);
         switch (info) {
             .Struct => |s| {
@@ -234,21 +233,21 @@ pub const ChildrenArray = struct {
                     self.appendIfNotZero(node);
                 }
             },
-            .var_decl => |value| self.addChildren(value),
-            .array_type => |value| self.addChildren(value),
-            .ptr_type => |value| self.addChildren(value),
-            .slice => |value| self.addChildren(value),
-            .array_init => |value| self.addChildren(value),
-            .struct_init => |value| self.addChildren(value),
-            .call => |value| self.addChildren(value),
-            .@"switch" => |value| self.addChildren(value),
-            .switch_case => |value| self.addChildren(value),
-            .@"while" => |value| self.addChildren(value),
-            .@"if" => |value| self.addChildren(value),
-            .fn_proto => |value| self.addChildren(value),
-            .container_decl => |value| self.addChildren(value),
-            .container_field => |value| self.addChildren(value),
-            .@"asm" => |value| self.addChildren(value),
+            .var_decl => |value| self.addChildren(Ast.full.VarDecl.Components, value.ast),
+            .array_type => |value| self.addChildren(Ast.full.ArrayType.Components, value.ast),
+            .ptr_type => |value| self.addChildren(Ast.full.PtrType.Components, value.ast),
+            .slice => |value| self.addChildren(Ast.full.Slice.Components, value.ast),
+            .array_init => |value| self.addChildren(Ast.full.ArrayInit.Components, value.ast),
+            .struct_init => |value| self.addChildren(Ast.full.StructInit.Components, value.ast),
+            .call => |value| self.addChildren(Ast.full.Call.Components, value.ast),
+            .@"switch" => |value| self.addChildren(Switch.Components, value.ast),
+            .switch_case => |value| self.addChildren(Ast.full.SwitchCase.Components, value.ast),
+            .@"while" => |value| self.addChildren(Ast.full.While.Components, value.ast),
+            .@"if" => |value| self.addChildren(Ast.full.If.Components, value.ast),
+            .fn_proto => |value| self.addChildren(Ast.full.FnProto.Components, value.ast),
+            .container_decl => |value| self.addChildren(Ast.full.ContainerDecl.Components, value.ast),
+            .container_field => |value| self.addChildren(Ast.full.ContainerField.Components, value.ast),
+            .@"asm" => |value| self.addChildren(Ast.full.Asm.Components, value.ast),
         }
         return self.array.items;
     }
