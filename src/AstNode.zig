@@ -196,6 +196,11 @@ pub const ChildrenArray = struct {
     }
 
     fn appendIfNotZero(self: *@This(), idx: u32) void {
+        if(idx>500)
+        {
+            // memory corruption
+            std.debug.print("{}\n", .{idx});
+        }
         if (idx == self.exclude) {
             return;
         }
@@ -212,7 +217,11 @@ pub const ChildrenArray = struct {
             .Struct => |s| {
                 inline for (s.fields) |field| {
                     if (field.field_type == Ast.Node.Index) {
-                        if (!std.mem.endsWith(u8, field.name, "_token")) {
+                        if (!std.mem.endsWith(u8, field.name, "_token")
+                        and !std.mem.endsWith(u8, field.name, "paren")
+                        and !std.mem.endsWith(u8, field.name, "brace")
+                        and !std.mem.endsWith(u8, field.name, "bracket")
+                        ) {
                             self.appendIfNotZero(@field(children, field.name));
                         }
                     } else if (field.field_type == []const Ast.Node.Index) {
