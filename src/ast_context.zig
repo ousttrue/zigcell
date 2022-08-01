@@ -32,9 +32,9 @@ pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
         context.tokens_node[token_idx] = idx;
     }
 
-    var node = AstNode.init(tree, idx);
     var it = AstNode.Iterator{ .exclude = idx };
-    _ = async node.iterate(&it);
+    var buffer: [2]Ast.Node.Index = undefined;
+    _ = async it.iterate(AstNode.getChildren(tree, idx, &buffer));
     while (it.value) |child| : (it.next()) {
         if (child == 0) {
             continue;

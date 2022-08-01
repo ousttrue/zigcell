@@ -44,34 +44,20 @@ pub const NodeChildren = union(enum) {
     @"asm": Ast.full.Asm,
 };
 
-const Self = @This();
-
-idx: Ast.Node.Index,
-children: NodeChildren = .none,
-buffer: [2]u32 = undefined,
-
-pub fn init(tree: Ast, idx: Ast.Node.Index) Self {
-    var self = Self{
-        .idx = idx,
-    };
-    self.getChildren(tree);
-    return self;
-}
-
 ///
 /// see: lib/std/zig/Ast.zig Node.Tag
 ///
-fn getChildren(
-    self: *Self,
+pub fn getChildren(
     tree: Ast,
-) void {
-    const idx = self.idx;
+    idx: Ast.Node.Index,
+    buffer: []Ast.Node.Index,
+) NodeChildren {
     const tag = tree.nodes.items(.tag);
     const node_tag = tag[idx];
     const data = tree.nodes.items(.data);
     const node_data = data[idx];
 
-    self.children = switch (node_tag) {
+    return switch (node_tag) {
         .root => .{ .nodes = tree.rootDecls() },
         .@"usingnamespace" => .{ .one = node_data.lhs },
         .test_decl => .{ .two = node_data },
@@ -117,15 +103,15 @@ fn getChildren(
         .slice_sentinel => .{ .slice = tree.sliceSentinel(idx) },
         .deref => .{ .one = node_data.lhs },
         .array_access => .{ .two = node_data },
-        .array_init_one, .array_init_one_comma => .{ .array_init = tree.arrayInitOne(self.buffer[0..1], idx) },
-        .array_init_dot_two, .array_init_dot_two_comma => .{ .array_init = tree.arrayInitDotTwo(self.buffer[0..2], idx) },
+        .array_init_one, .array_init_one_comma => .{ .array_init = tree.arrayInitOne(buffer[0..1], idx) },
+        .array_init_dot_two, .array_init_dot_two_comma => .{ .array_init = tree.arrayInitDotTwo(buffer[0..2], idx) },
         .array_init_dot, .array_init_dot_comma => .{ .array_init = tree.arrayInitDot(idx) },
         .array_init, .array_init_comma => .{ .array_init = tree.arrayInit(idx) },
-        .struct_init_one, .struct_init_one_comma => .{ .struct_init = tree.structInitOne(self.buffer[0..1], idx) },
-        .struct_init_dot_two, .struct_init_dot_two_comma => .{ .struct_init = tree.structInitDotTwo(self.buffer[0..2], idx) },
+        .struct_init_one, .struct_init_one_comma => .{ .struct_init = tree.structInitOne(buffer[0..1], idx) },
+        .struct_init_dot_two, .struct_init_dot_two_comma => .{ .struct_init = tree.structInitDotTwo(buffer[0..2], idx) },
         .struct_init_dot, .struct_init_dot_comma => .{ .struct_init = tree.structInitDot(idx) },
         .struct_init, .struct_init_comma => .{ .struct_init = tree.structInit(idx) },
-        .call_one, .call_one_comma, .async_call_one, .async_call_one_comma => .{ .call = tree.callOne(self.buffer[0..1], idx) },
+        .call_one, .call_one_comma, .async_call_one, .async_call_one_comma => .{ .call = tree.callOne(buffer[0..1], idx) },
         .call, .call_comma, .async_call, .async_call_comma => .{ .call = tree.callFull(idx) },
         .@"switch", .switch_comma => .{ .@"switch" = Switch.init(tree, idx) },
         .switch_case_one => .{ .switch_case = tree.switchCaseOne(idx) },
@@ -143,9 +129,9 @@ fn getChildren(
         .@"continue" => .none,
         .@"break" => .{ .two = node_data },
         .@"return" => .{ .one = node_data.lhs },
-        .fn_proto_simple => .{ .fn_proto = tree.fnProtoSimple(self.buffer[0..1], idx) },
+        .fn_proto_simple => .{ .fn_proto = tree.fnProtoSimple(buffer[0..1], idx) },
         .fn_proto_multi => .{ .fn_proto = tree.fnProtoMulti(idx) },
-        .fn_proto_one => .{ .fn_proto = tree.fnProtoOne(self.buffer[0..1], idx) },
+        .fn_proto_one => .{ .fn_proto = tree.fnProtoOne(buffer[0..1], idx) },
         .fn_proto => .{ .fn_proto = tree.fnProto(idx) },
         .fn_decl => .{ .two = node_data },
         .anyframe_type => .{ .one = node_data.rhs },
@@ -155,10 +141,10 @@ fn getChildren(
         .builtin_call, .builtin_call_comma => .{ .nodes = tree.extra_data[node_data.lhs..node_data.rhs] },
         .error_set_decl => .none,
         .container_decl, .container_decl_trailing => .{ .container_decl = tree.containerDecl(idx) },
-        .container_decl_two, .container_decl_two_trailing => .{ .container_decl = tree.containerDeclTwo(self.buffer[0..2], idx) },
+        .container_decl_two, .container_decl_two_trailing => .{ .container_decl = tree.containerDeclTwo(buffer[0..2], idx) },
         .container_decl_arg, .container_decl_arg_trailing => .{ .container_decl = tree.containerDeclArg(idx) },
         .tagged_union, .tagged_union_trailing => .{ .container_decl = tree.taggedUnion(idx) },
-        .tagged_union_two, .tagged_union_two_trailing => .{ .container_decl = tree.taggedUnionTwo(self.buffer[0..2], idx) },
+        .tagged_union_two, .tagged_union_two_trailing => .{ .container_decl = tree.taggedUnionTwo(buffer[0..2], idx) },
         .tagged_union_enum_tag, .tagged_union_enum_tag_trailing => .{ .container_decl = tree.taggedUnionEnumTag(idx) },
         .container_field_init => .{ .container_field = tree.containerFieldInit(idx) },
         .container_field_align => .{ .container_field = tree.containerFieldAlign(idx) },
@@ -178,9 +164,45 @@ pub const Iterator = struct {
     exclude: Ast.Node.Index,
     frame: anyframe->void = undefined,
     value: ?Ast.Node.Index = null,
+    children: NodeChildren = .none,
+    buffer: [2]u32 = undefined,
 
     pub fn next(self: *@This()) void {
         resume self.frame;
+    }
+
+    pub fn iterate(self: *Iterator, children: NodeChildren) void {
+        switch (children) {
+            .none => {},
+            .one => |single| {
+                self.setIfNotZero(single);
+            },
+            .two => |lr| {
+                self.setIfNotZero(lr.lhs);
+                self.setIfNotZero(lr.rhs);
+            },
+            .nodes => |nodes| {
+                for (nodes) |node| {
+                    self.setIfNotZero(node);
+                }
+            },
+            .var_decl => |value| self.addChildren(Ast.full.VarDecl.Components, value.ast),
+            .array_type => |value| self.addChildren(Ast.full.ArrayType.Components, value.ast),
+            .ptr_type => |value| self.addChildren(Ast.full.PtrType.Components, value.ast),
+            .slice => |value| self.addChildren(Ast.full.Slice.Components, value.ast),
+            .array_init => |value| self.addChildren(Ast.full.ArrayInit.Components, value.ast),
+            .struct_init => |value| self.addChildren(Ast.full.StructInit.Components, value.ast),
+            .call => |value| self.addChildren(Ast.full.Call.Components, value.ast),
+            .@"switch" => |value| self.addChildren(Switch.Components, value.ast),
+            .switch_case => |value| self.addChildren(Ast.full.SwitchCase.Components, value.ast),
+            .@"while" => |value| self.addChildren(Ast.full.While.Components, value.ast),
+            .@"if" => |value| self.addChildren(Ast.full.If.Components, value.ast),
+            .fn_proto => |value| self.addChildren(Ast.full.FnProto.Components, value.ast),
+            .container_decl => |value| self.addChildren(Ast.full.ContainerDecl.Components, value.ast),
+            .container_field => |value| self.addChildren(Ast.full.ContainerField.Components, value.ast),
+            .@"asm" => |value| self.addChildren(Ast.full.Asm.Components, value.ast),
+        }
+        self.value = null;
     }
 
     fn setIfNotZero(self: *@This(), value: Ast.Node.Index) void {
@@ -220,40 +242,6 @@ pub const Iterator = struct {
         }
     }
 };
-
-pub fn iterate(self: *Self, it: *Iterator) void {
-    switch (self.children) {
-        .none => {},
-        .one => |single| {
-            it.setIfNotZero(single);
-        },
-        .two => |lr| {
-            it.setIfNotZero(lr.lhs);
-            it.setIfNotZero(lr.rhs);
-        },
-        .nodes => |nodes| {
-            for (nodes) |node| {
-                it.setIfNotZero(node);
-            }
-        },
-        .var_decl => |value| it.addChildren(Ast.full.VarDecl.Components, value.ast),
-        .array_type => |value| it.addChildren(Ast.full.ArrayType.Components, value.ast),
-        .ptr_type => |value| it.addChildren(Ast.full.PtrType.Components, value.ast),
-        .slice => |value| it.addChildren(Ast.full.Slice.Components, value.ast),
-        .array_init => |value| it.addChildren(Ast.full.ArrayInit.Components, value.ast),
-        .struct_init => |value| it.addChildren(Ast.full.StructInit.Components, value.ast),
-        .call => |value| it.addChildren(Ast.full.Call.Components, value.ast),
-        .@"switch" => |value| it.addChildren(Switch.Components, value.ast),
-        .switch_case => |value| it.addChildren(Ast.full.SwitchCase.Components, value.ast),
-        .@"while" => |value| it.addChildren(Ast.full.While.Components, value.ast),
-        .@"if" => |value| it.addChildren(Ast.full.If.Components, value.ast),
-        .fn_proto => |value| it.addChildren(Ast.full.FnProto.Components, value.ast),
-        .container_decl => |value| it.addChildren(Ast.full.ContainerDecl.Components, value.ast),
-        .container_field => |value| it.addChildren(Ast.full.ContainerField.Components, value.ast),
-        .@"asm" => |value| it.addChildren(Ast.full.Asm.Components, value.ast),
-    }
-    it.value = null;
-}
 
 pub const ChildrenArray = struct {
     array: std.ArrayList(u32),
