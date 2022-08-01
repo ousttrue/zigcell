@@ -2,7 +2,7 @@ const std = @import("std");
 const imgui = @import("imgui");
 const imutil = @import("imutil");
 const ast_context = @import("./ast_context.zig");
-const AstNode = @import("./AstNode.zig");
+const AstNodeIterator = @import("./AstNodeIterator.zig");
 const AstContext = ast_context.AstContext;
 const Screen = @import("./screen.zig").Screen;
 const Self = @This();
@@ -33,9 +33,9 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
     // | @enumToInt(imgui.ImGuiTreeNodeFlags._DefaultOpen)
     ;
 
-    var it = AstNode.Iterator{ .exclude = idx };
+    var it = AstNodeIterator.init(idx);
     var tmp: [2]std.zig.Ast.Node.Index = undefined;
-    _ = async it.iterate(AstNode.getChildren(ast.tree, idx, &tmp));
+    _ = async it.iterate(AstNodeIterator.NodeChildren.init(ast.tree, idx, &tmp));
     const first = it.value;
     if (first == null) {
         flags |= @enumToInt(imgui.ImGuiTreeNodeFlags._Leaf);

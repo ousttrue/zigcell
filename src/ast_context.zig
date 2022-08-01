@@ -1,6 +1,6 @@
 const std = @import("std");
 const Ast = std.zig.Ast;
-const AstNode = @import("./AstNode.zig");
+const AstNodeIterator = @import("./AstNodeIterator.zig");
 
 fn getAllTokens(allocator: std.mem.Allocator, source: [:0]const u8) std.ArrayList(std.zig.Token) {
     var tokens = std.ArrayList(std.zig.Token).init(allocator);
@@ -32,9 +32,9 @@ pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
         context.tokens_node[token_idx] = idx;
     }
 
-    var it = AstNode.Iterator{ .exclude = idx };
+    var it = AstNodeIterator.init(idx);
     var buffer: [2]Ast.Node.Index = undefined;
-    _ = async it.iterate(AstNode.getChildren(tree, idx, &buffer));
+    _ = async it.iterate(AstNodeIterator.NodeChildren.init(tree, idx, &buffer));
     while (it.value) |child| : (it.next()) {
         if (child == 0) {
             continue;
