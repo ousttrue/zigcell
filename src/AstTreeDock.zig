@@ -32,10 +32,13 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
     // | @enumToInt(imgui.ImGuiTreeNodeFlags._SpanAvailWidth)
     // | @enumToInt(imgui.ImGuiTreeNodeFlags._DefaultOpen)
     ;
+
+    var it = AstNode.Iterator{ .exclude = idx };
     var tmp: [2]std.zig.Ast.Node.Index = undefined;
-    var children_array = AstNode.ChildrenArray.init(ast.allocator, idx, AstNode.getChildren(ast.tree, idx, &tmp));
+    var frame = async it.toArray(self.allocator, AstNode.getChildren(ast.tree, idx, &tmp));
+    var children_array = (await frame) catch unreachable;
     defer children_array.deinit();
-    const children = children_array.array.items;
+    const children = children_array.items;
     if (children.len == 0) {
         flags |= @enumToInt(imgui.ImGuiTreeNodeFlags._Leaf);
     }

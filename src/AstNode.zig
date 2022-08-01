@@ -171,6 +171,19 @@ pub const Iterator = struct {
         resume self.frame;
     }
 
+    pub fn toArray(
+        self: *Iterator,
+        allocator: std.mem.Allocator,
+        children: NodeChildren,
+    ) !std.ArrayList(u32) {
+        var array = std.ArrayList(u32).init(allocator);
+        _ = async self.iterate(children);
+        while (self.value) |child| : (self.next()) {
+            try array.append(child);
+        }
+        return array;
+    }
+
     pub fn iterate(self: *Iterator, children: NodeChildren) void {
         switch (children) {
             .none => {},
@@ -240,97 +253,5 @@ pub const Iterator = struct {
                 unreachable;
             },
         }
-    }
-};
-
-pub const ChildrenArray = struct {
-    array: std.ArrayList(u32),
-    exclude: Ast.Node.Index,
-
-    pub fn init(
-        allocator: std.mem.Allocator,
-        idx: Ast.Node.Index,
-        children: NodeChildren,
-    ) ChildrenArray {
-        var self = ChildrenArray{
-            .array = std.ArrayList(u32).init(allocator),
-            .exclude = idx,
-        };
-        _ = self.toArray(children);
-        return self;
-    }
-
-    pub fn deinit(self: @This()) void {
-        self.array.deinit();
-    }
-
-    fn appendIfNotZero(self: *@This(), idx: u32) void {
-        if (idx > 500) {
-            // memory corruption
-            std.debug.print("{}\n", .{idx});
-        }
-        if (idx == self.exclude) {
-            return;
-        }
-        if (idx == 0) {
-            return;
-        }
-        self.array.append(idx) catch unreachable;
-    }
-
-    fn addChildren(self: *@This(), comptime T: type, children: T) void {
-        const info = @typeInfo(T);
-        switch (info) {
-            .Struct => |s| {
-                inline for (s.fields) |field| {
-                    if (field.field_type == Ast.Node.Index) {
-                        if (!std.mem.endsWith(u8, field.name, "_token") and !std.mem.endsWith(u8, field.name, "paren") and !std.mem.endsWith(u8, field.name, "brace") and !std.mem.endsWith(u8, field.name, "bracket")) {
-                            self.appendIfNotZero(@field(children, field.name));
-                        }
-                    } else if (field.field_type == []const Ast.Node.Index) {
-                        for (@field(children, field.name)) |value| {
-                            self.appendIfNotZero(value);
-                        }
-                    }
-                }
-            },
-            else => {
-                unreachable;
-            },
-        }
-    }
-
-    fn toArray(self: *@This(), children: NodeChildren) []const u32 {
-        switch (children) {
-            .none => {},
-            .one => |single| {
-                self.appendIfNotZero(single);
-            },
-            .two => |lr| {
-                self.appendIfNotZero(lr.lhs);
-                self.appendIfNotZero(lr.rhs);
-            },
-            .nodes => |nodes| {
-                for (nodes) |node| {
-                    self.appendIfNotZero(node);
-                }
-            },
-            .var_decl => |value| self.addChildren(Ast.full.VarDecl.Components, value.ast),
-            .array_type => |value| self.addChildren(Ast.full.ArrayType.Components, value.ast),
-            .ptr_type => |value| self.addChildren(Ast.full.PtrType.Components, value.ast),
-            .slice => |value| self.addChildren(Ast.full.Slice.Components, value.ast),
-            .array_init => |value| self.addChildren(Ast.full.ArrayInit.Components, value.ast),
-            .struct_init => |value| self.addChildren(Ast.full.StructInit.Components, value.ast),
-            .call => |value| self.addChildren(Ast.full.Call.Components, value.ast),
-            .@"switch" => |value| self.addChildren(Switch.Components, value.ast),
-            .switch_case => |value| self.addChildren(Ast.full.SwitchCase.Components, value.ast),
-            .@"while" => |value| self.addChildren(Ast.full.While.Components, value.ast),
-            .@"if" => |value| self.addChildren(Ast.full.If.Components, value.ast),
-            .fn_proto => |value| self.addChildren(Ast.full.FnProto.Components, value.ast),
-            .container_decl => |value| self.addChildren(Ast.full.ContainerDecl.Components, value.ast),
-            .container_field => |value| self.addChildren(Ast.full.ContainerField.Components, value.ast),
-            .@"asm" => |value| self.addChildren(Ast.full.Asm.Components, value.ast),
-        }
-        return self.array.items;
     }
 };
