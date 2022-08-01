@@ -21,10 +21,11 @@ fn getAllTokens(allocator: std.mem.Allocator, source: [:0]const u8) std.ArrayLis
     return tokens;
 }
 
-pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
+pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32), idx: Ast.Node.Index) void {
     const tree = context.tree;
-    const idx = stack.items[stack.items.len - 1];
-    context.nodes_parent[idx] = stack.items[stack.items.len - 2];
+    context.nodes_parent[idx] = stack.items[stack.items.len - 1];
+    stack.append(idx) catch unreachable;
+
     const token_start = tree.firstToken(idx);
     const token_last = tree.lastToken(idx);
     var token_idx = token_start;
@@ -36,13 +37,9 @@ pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
     var buffer: [2]Ast.Node.Index = undefined;
     _ = async it.iterate(AstNodeIterator.NodeChildren.init(tree, idx, &buffer));
     while (it.value) |child| : (it.next()) {
-        if (child == 0) {
-            continue;
-        }
-        stack.append(child) catch unreachable;
-        traverse(context, stack);
-        _ = stack.pop();
+        traverse(context, stack, child);
     }
+    _ = stack.pop();
 }
 
 pub const AstPath = struct {};
@@ -79,9 +76,7 @@ pub const AstContext = struct {
         stack.append(0) catch unreachable;
         for (tree.rootDecls()) |decl| {
             // top level
-            stack.append(decl) catch unreachable;
-            traverse(self, &stack);
-            _ = stack.pop();
+            traverse(self, &stack, decl);
         }
 
         return self;
