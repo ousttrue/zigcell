@@ -35,11 +35,9 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
 
     var it = AstNode.Iterator{ .exclude = idx };
     var tmp: [2]std.zig.Ast.Node.Index = undefined;
-    var frame = async it.toArray(self.allocator, AstNode.getChildren(ast.tree, idx, &tmp));
-    var children_array = (await frame) catch unreachable;
-    defer children_array.deinit();
-    const children = children_array.items;
-    if (children.len == 0) {
+    _ = async it.iterate(AstNode.getChildren(ast.tree, idx, &tmp));
+    const first = it.value;
+    if (first == null) {
         flags |= @enumToInt(imgui.ImGuiTreeNodeFlags._Leaf);
     }
 
@@ -69,7 +67,10 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
 
     // children
     if (opend) {
-        for (children) |child| {
+        if (first) |child| {
+            self.showTree(ast, child);
+        }
+        while (it.value) |child| : (it.next()) {
             self.showTree(ast, child);
         }
         imgui.TreePop();

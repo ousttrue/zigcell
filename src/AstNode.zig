@@ -171,19 +171,6 @@ pub const Iterator = struct {
         resume self.frame;
     }
 
-    pub fn toArray(
-        self: *Iterator,
-        allocator: std.mem.Allocator,
-        children: NodeChildren,
-    ) !std.ArrayList(u32) {
-        var array = std.ArrayList(u32).init(allocator);
-        _ = async self.iterate(children);
-        while (self.value) |child| : (self.next()) {
-            try array.append(child);
-        }
-        return array;
-    }
-
     pub fn iterate(self: *Iterator, children: NodeChildren) void {
         switch (children) {
             .none => {},
