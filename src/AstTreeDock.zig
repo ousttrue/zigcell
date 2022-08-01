@@ -34,8 +34,7 @@ fn showTree(self: *Self, ast: *AstContext, idx: u32) void {
     ;
 
     var it = AstNodeIterator.init(idx);
-    var tmp: [2]std.zig.Ast.Node.Index = undefined;
-    _ = async it.iterate(AstNodeIterator.NodeChildren.init(ast.tree, idx, &tmp));
+    _ = async it.iterateAsync(ast.tree);
     const first = it.value;
     if (first == null) {
         flags |= @enumToInt(imgui.ImGuiTreeNodeFlags._Leaf);

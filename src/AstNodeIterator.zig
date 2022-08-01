@@ -163,10 +163,9 @@ pub const NodeChildren = union(enum) {
 
 const Self = @This();
 
-idx: Ast.Node.Index,
 frame: anyframe->void = undefined,
 value: ?Ast.Node.Index = null,
-children: NodeChildren = .none,
+idx: Ast.Node.Index,
 buffer: [2]u32 = undefined,
 
 pub fn init(idx: Ast.Node.Index) Self {
@@ -177,8 +176,8 @@ pub fn next(self: *Self) void {
     resume self.frame;
 }
 
-pub fn iterate(self: *Self, children: NodeChildren) void {
-    switch (children) {
+pub fn iterateAsync(self: *Self, tree: Ast) void {
+    switch (NodeChildren.init(tree, self.idx, &self.buffer)) {
         .none => {},
         .one => |single| {
             self.setIfNotZero(single);

@@ -34,8 +34,7 @@ pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32), idx: Ast.Node.
     }
 
     var it = AstNodeIterator.init(idx);
-    var buffer: [2]Ast.Node.Index = undefined;
-    _ = async it.iterate(AstNodeIterator.NodeChildren.init(tree, idx, &buffer));
+    _ = async it.iterateAsync(tree);
     while (it.value) |child| : (it.next()) {
         traverse(context, stack, child);
     }
