@@ -176,10 +176,16 @@ fn getChildren(
 
 pub const ChildrenArray = struct {
     array: std.ArrayList(u32),
+    exclude: Ast.Node.Index,
 
-    pub fn init(allocator: std.mem.Allocator, children: NodeChildren) ChildrenArray {
+    pub fn init(
+        allocator: std.mem.Allocator,
+        idx: Ast.Node.Index,
+        children: NodeChildren,
+    ) ChildrenArray {
         var self = ChildrenArray{
             .array = std.ArrayList(u32).init(allocator),
+            .exclude = idx,
         };
         _ = self.toArray(children);
         return self;
@@ -190,9 +196,13 @@ pub const ChildrenArray = struct {
     }
 
     fn appendIfNotZero(self: *@This(), idx: u32) void {
-        if (idx != 0) {
-            self.array.append(idx) catch unreachable;
+        if (idx == self.exclude) {
+            return;
         }
+        if (idx == 0) {
+            return;
+        }
+        self.array.append(idx) catch unreachable;
     }
 
     fn addChildren(self: *@This(), comptime T: type, children: T) void {

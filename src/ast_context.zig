@@ -33,7 +33,7 @@ pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
     }
 
     var node = AstNode.init(tree, idx);
-    var children_array = AstNode.ChildrenArray.init(context.allocator, node.children);
+    var children_array = AstNode.ChildrenArray.init(context.allocator, idx, node.children);
     defer children_array.deinit();
     for (children_array.array.items) |child| {
         if (child == 0) {
