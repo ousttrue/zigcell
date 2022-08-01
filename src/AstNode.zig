@@ -174,6 +174,87 @@ fn getChildren(
     };
 }
 
+pub const Iterator = struct {
+    exclude: Ast.Node.Index,
+    frame: anyframe->void = undefined,
+    value: ?Ast.Node.Index = null,
+
+    pub fn next(self: *@This()) void {
+        resume self.frame;
+    }
+
+    fn setIfNotZero(self: *@This(), value: Ast.Node.Index) void {
+        if (value == 0) {
+            // invalid value
+            return;
+        }
+        if (value == self.exclude) {
+            // avoid infinite loop
+            return;
+        }
+        self.value = value;
+        suspend {
+            self.frame = @frame();
+        }
+    }
+
+    fn addChildren(self: *@This(), comptime T: type, t: T) void {
+        const info = @typeInfo(T);
+        switch (info) {
+            .Struct => |s| {
+                inline for (s.fields) |field| {
+                    if (field.field_type == Ast.Node.Index) {
+                        if (!std.mem.endsWith(u8, field.name, "_token") and !std.mem.endsWith(u8, field.name, "paren") and !std.mem.endsWith(u8, field.name, "brace") and !std.mem.endsWith(u8, field.name, "bracket")) {
+                            self.setIfNotZero(@field(t, field.name));
+                        }
+                    } else if (field.field_type == []const Ast.Node.Index) {
+                        for (@field(t, field.name)) |value| {
+                            self.setIfNotZero(value);
+                        }
+                    }
+                }
+            },
+            else => {
+                unreachable;
+            },
+        }
+    }
+};
+
+pub fn iterate(self: *Self, it: *Iterator) void {
+    switch (self.children) {
+        .none => {},
+        .one => |single| {
+            it.setIfNotZero(single);
+        },
+        .two => |lr| {
+            it.setIfNotZero(lr.lhs);
+            it.setIfNotZero(lr.rhs);
+        },
+        .nodes => |nodes| {
+            for (nodes) |node| {
+                it.setIfNotZero(node);
+            }
+        },
+        .var_decl => |value| it.addChildren(Ast.full.VarDecl.Components, value.ast),
+        .array_type => |value| it.addChildren(Ast.full.ArrayType.Components, value.ast),
+        .ptr_type => |value| it.addChildren(Ast.full.PtrType.Components, value.ast),
+        .slice => |value| it.addChildren(Ast.full.Slice.Components, value.ast),
+        .array_init => |value| it.addChildren(Ast.full.ArrayInit.Components, value.ast),
+        .struct_init => |value| it.addChildren(Ast.full.StructInit.Components, value.ast),
+        .call => |value| it.addChildren(Ast.full.Call.Components, value.ast),
+        .@"switch" => |value| it.addChildren(Switch.Components, value.ast),
+        .switch_case => |value| it.addChildren(Ast.full.SwitchCase.Components, value.ast),
+        .@"while" => |value| it.addChildren(Ast.full.While.Components, value.ast),
+        .@"if" => |value| it.addChildren(Ast.full.If.Components, value.ast),
+        .fn_proto => |value| it.addChildren(Ast.full.FnProto.Components, value.ast),
+        .container_decl => |value| it.addChildren(Ast.full.ContainerDecl.Components, value.ast),
+        .container_field => |value| it.addChildren(Ast.full.ContainerField.Components, value.ast),
+        .@"asm" => |value| it.addChildren(Ast.full.Asm.Components, value.ast),
+    }
+    it.value = null;
+}
+
 pub const ChildrenArray = struct {
     array: std.ArrayList(u32),
     exclude: Ast.Node.Index,
@@ -196,8 +277,7 @@ pub const ChildrenArray = struct {
     }
 
     fn appendIfNotZero(self: *@This(), idx: u32) void {
-        if(idx>500)
-        {
+        if (idx > 500) {
             // memory corruption
             std.debug.print("{}\n", .{idx});
         }
@@ -211,17 +291,12 @@ pub const ChildrenArray = struct {
     }
 
     fn addChildren(self: *@This(), comptime T: type, children: T) void {
-        _ = self;
         const info = @typeInfo(T);
         switch (info) {
             .Struct => |s| {
                 inline for (s.fields) |field| {
                     if (field.field_type == Ast.Node.Index) {
-                        if (!std.mem.endsWith(u8, field.name, "_token")
-                        and !std.mem.endsWith(u8, field.name, "paren")
-                        and !std.mem.endsWith(u8, field.name, "brace")
-                        and !std.mem.endsWith(u8, field.name, "bracket")
-                        ) {
+                        if (!std.mem.endsWith(u8, field.name, "_token") and !std.mem.endsWith(u8, field.name, "paren") and !std.mem.endsWith(u8, field.name, "brace") and !std.mem.endsWith(u8, field.name, "bracket")) {
                             self.appendIfNotZero(@field(children, field.name));
                         }
                     } else if (field.field_type == []const Ast.Node.Index) {

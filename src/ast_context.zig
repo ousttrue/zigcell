@@ -33,9 +33,9 @@ pub fn traverse(context: *AstContext, stack: *std.ArrayList(u32)) void {
     }
 
     var node = AstNode.init(tree, idx);
-    var children_array = AstNode.ChildrenArray.init(context.allocator, idx, node.children);
-    defer children_array.deinit();
-    for (children_array.array.items) |child| {
+    var it = AstNode.Iterator{ .exclude = idx };
+    _ = async node.iterate(&it);
+    while (it.value) |child| : (it.next()) {
         if (child == 0) {
             continue;
         }
